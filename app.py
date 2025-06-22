@@ -103,13 +103,15 @@ def stock_analyzer(symbols):
 
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
+        df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h')
 
-        if df_4h is None or df_1d is None:
+        if df_4h is None or df_1d is None or df_1h is None:
             st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
             continue
 
         df_4h = compute_indicators(df_4h)
         df_1d = compute_indicators(df_1d)
+        df_1h = compute_indicators(df_1h)
 
         def analyze_df(df, tf_name):
             latest = df.iloc[-1]
@@ -199,15 +201,24 @@ def stock_analyzer(symbols):
 
         clues_4h, signal_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d = analyze_df(df_1d, '1D')
-
-        if 'Bullish' in signal_4h and 'Bullish' in signal_1d:
-            final = '💹 Strong Bullish'
-        elif 'Bearish' in signal_4h and 'Bearish' in signal_1d:
-            final = '🔻 Strong Bearish'
+        clues_1h, signal_1h = analyze_df(df_1h, '1H')
+        if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
+            final = '💹 Ultra Strong Bullish (1H + 4H + 1D agree)'
+        elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
+            final = '🔻 Ultra Strong Bearish (1H + 4H + 1D agree)'
+        elif ('Bullish' in signal_1h and 'Bullish' in signal_4h) or ('Bullish' in signal_4h and 'Bullish' in signal_1d):
+            final = '📈 Strong Bullish (2 TF agree)'
+        elif ('Bearish' in signal_1h and 'Bearish' in signal_4h) or ('Bearish' in signal_4h and 'Bearish' in signal_1d):
+            final = '📉 Strong Bearish (2 TF agree)'
         else:
             final = '⚖️ Mixed / Neutral'
 
-        st.subheader(f"{symbol} 4H")
+         st.subheader(f"{symbol} 1H")
+        for c in clues_1h:
+            st.write(f"🔹 {c}")
+        st.write(f"➡ 1H Signal: {signal_1h}")
+        st.subheader(f"{symbol} 1H")
+        
         for c in clues_4h:
             st.write(f"🔹 {c}")
         st.write(f"➡ 4H Signal: {signal_4h}")
