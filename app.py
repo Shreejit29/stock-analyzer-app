@@ -6,6 +6,8 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
+import streamlit as st
+import feedparser
 
 def stock_analyzer(symbols):
     def detect_divergence(price, indicator):
@@ -22,7 +24,7 @@ def stock_analyzer(symbols):
         support = close_series.rolling(window).min().iloc[-1]
         resistance = close_series.rolling(window).max().iloc[-1]
         return support, resistance
-
+        
     def compute_indicators(df):
         close = df['Close']
         high = df['High']
@@ -103,7 +105,7 @@ def stock_analyzer(symbols):
 
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
-        df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
+        df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h')
 
         if df_4h is None or df_1d is None or df_1h is None:
             st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
@@ -213,12 +215,11 @@ def stock_analyzer(symbols):
         else:
             final = '⚖️ Mixed / Neutral'
 
-        st.subheader(f"{symbol} 1H")
+         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1H Signal: {signal_1h}")
-        
-        st.subheader(f"{symbol} 4H")
+        st.subheader(f"{symbol} 1H")
         
         for c in clues_4h:
             st.write(f"🔹 {c}")
@@ -232,10 +233,38 @@ def stock_analyzer(symbols):
         st.success(f"Final Combined Signal: {final}")
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
 
-# Streamlit UI
-st.title("📈 Stock Analyzer App")
-symbols_input = st.text_input("Enter symbols separated by commas", "RECLTD.NS")
-symbols_list = [s.strip() for s in symbols_input.split(',') if s.strip()]
+def display_market_news():
+    st.markdown("### 📰 Latest Market News")
+    rss_sources = {
+        "Moneycontrol": "https://www.moneycontrol.com/rss/MCtopnews.xml",
+        "Economic Times": "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
+        "Business Standard": "https://www.business-standard.com/rss/home_page_top_stories.rss"
+    }
 
-if st.button("Analyze"):
-    stock_analyzer(symbols_list)
+    for source_name, rss_url in rss_sources.items():
+        st.markdown(f"#### {source_name}")
+        articles = fetch_market_news(rss_url)
+        for art in articles:
+            st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
+
+def fetch_market_news(rss_url, max_items=5):
+    feed = feedparser.parse(rss_url)
+    articles = []
+    for entry in feed.entries[:max_items]:
+        articles.append({
+            "title": entry.title,
+            "link": entry.link,
+            "published": entry.published if "published" in entry else "N/A"
+        })
+    return articles
+
+# === Streamlit app code ===
+st.title("📈 Stock Analyzer + Market News")
+
+# User input for stock symbols
+symbols = st.text_input("Enter stock symbols (comma-separated):", "RECLTD.NS, INFY.NS").split(",")
+
+# Run analysis
+if st.button("Run Analysis"):
+    stock_analyzer([s.strip() for s in symbols])
+    display_market_news()  # <<< CALL NEWS AFTER ANALYSIS
