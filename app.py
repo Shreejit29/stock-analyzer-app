@@ -103,7 +103,7 @@ def stock_analyzer(symbols):
 
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
-        df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h')
+        df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
 
         if df_4h is None or df_1d is None or df_1h is None:
             st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
@@ -213,11 +213,12 @@ def stock_analyzer(symbols):
         else:
             final = '⚖️ Mixed / Neutral'
 
-         st.subheader(f"{symbol} 1H")
+        st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1H Signal: {signal_1h}")
-        st.subheader(f"{symbol} 1H")
+        
+        st.subheader(f"{symbol} 4H")
         
         for c in clues_4h:
             st.write(f"🔹 {c}")
