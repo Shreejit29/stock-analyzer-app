@@ -215,11 +215,12 @@ def stock_analyzer(symbols):
         else:
             final = '⚖️ Mixed / Neutral'
 
-         st.subheader(f"{symbol} 1H")
+        st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1H Signal: {signal_1h}")
-        st.subheader(f"{symbol} 1H")
+        
+        st.subheader(f"{symbol} 4H")
         
         for c in clues_4h:
             st.write(f"🔹 {c}")
