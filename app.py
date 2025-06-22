@@ -41,6 +41,32 @@ def stock_analyzer(symbols):
         df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
         df['ADX'] = ADXIndicator(high, low, close).adx()
         return df
+    def detect_trend_reversal(df):
+        rsi = df['RSI']
+        obv = df['OBV']
+    
+        # Ensure enough data points
+        if len(rsi) < 5 or len(obv) < 5:
+            return "Not enough data"
+    
+        recent_rsi = rsi.tail(5)
+        recent_obv = obv.tail(5)
+    
+        # RSI conditions
+        rsi_bull_cond = (recent_rsi.iloc[-1] > recent_rsi.iloc[-2]) and (recent_rsi.min() < 35)
+        rsi_bear_cond = (recent_rsi.iloc[-1] < recent_rsi.iloc[-2]) and (recent_rsi.max() > 65)
+    
+        # OBV conditions
+        obv_bull_cond = (recent_obv.iloc[-1] > recent_obv.iloc[-2])
+        obv_bear_cond = (recent_obv.iloc[-1] < recent_obv.iloc[-2])
+    
+        # Combine conditions
+        if rsi_bull_cond and obv_bull_cond:
+            return "📈 Possible Bullish Reversal"
+        elif rsi_bear_cond and obv_bear_cond:
+            return "📉 Possible Bearish Reversal"
+        else:
+            return "⚖️ No clear reversal signal"
 
     def clean_yf_data(df):
         if df.empty:
@@ -89,7 +115,8 @@ def stock_analyzer(symbols):
             latest = df.iloc[-1]
             close = df['Close']
             clues = []
-
+            reversal_signal = detect_trend_reversal(df)
+            clues.append(reversal_signal)
             atr_pct = (latest['ATR'] / latest['Close']) * 100
             rsi_bull = 65 if atr_pct > 3 else 60
             rsi_bear = 35 if atr_pct > 3 else 40
@@ -105,7 +132,31 @@ def stock_analyzer(symbols):
                 clues.append('MACD Bullish')
             elif latest['MACD'] < latest['MACD_Signal']:
                 clues.append('MACD Bearish')
+                
+            macd_cross_bars = np.where((df['MACD'] > df['MACD_Signal']) != (df['MACD'].shift(1) > df['MACD_Signal'].shift(1)))[0]
+            if len(macd_cross_bars) > 0:
+                bars_since_cross = len(df) - macd_cross_bars[-1]
+                clues.append(f'MACD crossover {bars_since_cross} bars ago')
+                
+            atr_mean = df['ATR'].tail(10).mean()
+            if latest['ATR'] > 1.2 * atr_mean:
+                clues.append('High Volatility')
+            elif latest['ATR'] < 0.8 * atr_mean:
+                clues.append('Low Volatility')
+            else:
+                clues.append('Normal Volatility')    
+                
+          
+            if latest['Close'] > df['Close'].iloc[-2]:
+                clues.append('Last candle bullish close')
+            else:
+                clues.append('Last candle bearish close')
 
+           
+            recent_range = close.tail(10).max() - close.tail(10).min()
+            if recent_range / latest['Close'] < 0.02:
+                clues.append('Consolidation zone (<2% range)')
+               
             if latest['ADX'] > 25:
                 clues.append('Strong Trend (ADX > 25)')
             elif latest['ADX'] < 20:
