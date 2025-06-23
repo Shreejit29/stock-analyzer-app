@@ -316,21 +316,11 @@ def stock_analyzer(symbols):
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
 
-def display_market_news():
-    st.markdown("### 📰 Latest Market News")
-    rss_sources = {
-        "Moneycontrol": "https://www.moneycontrol.com/rss/MCtopnews.xml",
-        "Economic Times": "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
-        "Business Standard": "https://www.business-standard.com/rss/home_page_top_stories.rss"
-    }
-
-    for source_name, rss_url in rss_sources.items():
-        st.markdown(f"#### {source_name}")
-        articles = fetch_market_news(rss_url)
-        for art in articles:
-            st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
-
-def fetch_market_news(rss_url, max_items=5):
+def fetch_market_news_for_query(query, max_items=5):
+    """
+    Fetches Google News RSS headlines based on the search query.
+    """
+    rss_url = f"https://news.google.com/rss/search?q={query.replace(' ', '%20')}&hl=en-IN&gl=IN&ceid=IN:en"
     feed = feedparser.parse(rss_url)
     articles = []
     for entry in feed.entries[:max_items]:
@@ -341,6 +331,28 @@ def fetch_market_news(rss_url, max_items=5):
         })
     return articles
 
+def display_market_news(symbols):
+    st.markdown("### 📰 Market News")
+
+    # General market news
+    st.markdown("#### 🏦 Nifty / Sensex / India Market")
+    general_news = fetch_market_news_for_query("Nifty OR Sensex OR India stock market")
+    if general_news:
+        for art in general_news:
+            st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
+    else:
+        st.info("No major headlines found for Nifty / Sensex.")
+
+    # Per stock news
+    for symbol in symbols:
+        st.markdown(f"#### 📌 News for {symbol}")
+        stock_news = fetch_market_news_for_query(symbol)
+        if stock_news:
+            for art in stock_news:
+                st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
+        else:
+            st.info(f"No recent headlines found for {symbol}.")
+
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer + Market News")
 
@@ -349,5 +361,6 @@ symbols = st.text_input("Enter stock symbols (comma-separated):", "RECLTD.NS, IN
 
 # Run analysis
 if st.button("Run Analysis"):
-    stock_analyzer([s.strip() for s in symbols])
-    display_market_news()  # <<< CALL NEWS AFTER ANALYSIS
+    clean_symbols = [s.strip() for s in symbols]
+    stock_analyzer(clean_symbols)
+    display_market_news(clean_symbols)
