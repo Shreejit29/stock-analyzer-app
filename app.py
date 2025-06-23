@@ -18,6 +18,29 @@ def stock_analyzer(symbols):
         if price.iloc[-1] > price.iloc[-2] and indicator.iloc[-1] < indicator.iloc[-2]:
             return 'Bearish Divergence'
         return None
+    def generate_market_warnings(latest_vix, nifty_change_pct):
+        """
+        Generate risk warnings based on VIX level and Nifty % change over period.
+        """
+        warnings = []
+    
+        # VIX warning
+        if latest_vix is not None:
+            if latest_vix >= 22:
+                warnings.append(f"⚠️ High VIX ({latest_vix:.2f}) → Market may be very volatile!")
+            elif latest_vix < 12:
+                warnings.append(f"⚠️ Very low VIX ({latest_vix:.2f}) → Risk of complacency in market!")
+    
+        # Nifty sudden change
+        if nifty_change_pct is not None:
+            if abs(nifty_change_pct) >= 1.5:
+                warnings.append(f"⚠️ Nifty moved {nifty_change_pct:.2f}% in recent days → Possible event/news impact!")
+    
+        # Combine warnings
+        if warnings:
+            return "\n".join(warnings)
+        else:
+            return "✅ No major risk signals detected. Market seems stable at the moment."
 
     def calc_support_resistance(close_series):
         window = 20
@@ -284,6 +307,14 @@ def stock_analyzer(symbols):
         
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
+        nifty_change_pct = None
+        if df_nifty is not None and not df_nifty.empty:
+            nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
+        
+        warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)
+        
+        st.subheader("⚠️ Market Risk Warnings")
+        st.markdown(warnings_text)
 
 def display_market_news():
     st.markdown("### 📰 Latest Market News")
