@@ -138,6 +138,16 @@ def stock_analyzer(symbols):
             return "📉 Possible Bearish Reversal"
         else:
             return "⚖️ No clear reversal signal"
+    def detect_gap(df_1d):
+        if len(df_1d) < 2:
+            return "Not enough data"
+        prev_close = df_1d['Close'].iloc[-2]
+        today_open = df_1d['Open'].iloc[-1]
+        gap_pct = (today_open - prev_close) / prev_close * 100
+        if abs(gap_pct) > 1:
+            return f"⚠️ {gap_pct:.2f}% gap at open — exercise caution!"
+        else:
+            return "No significant gap."
 
     def clean_yf_data(df):
         if df.empty:
@@ -182,6 +192,8 @@ def stock_analyzer(symbols):
 
         df_4h = compute_indicators(df_4h)
         df_1d = compute_indicators(df_1d)
+        gap_info = detect_gap(df_1d)
+        st.info(gap_info)
         df_1h = compute_indicators(df_1h)
 
         def analyze_df(df, tf_name):
@@ -301,7 +313,15 @@ def stock_analyzer(symbols):
 
         st.success(f"Final Combined Signal: {final}")
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
+        st.success(f"Final Combined Signal: {final}")
+        if latest_vix and latest_vix > 20:
+            st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
         
+        if 'Bullish' in final and nifty_trend == 'down':
+            st.warning("⚠️ Stock bullish but Nifty down — caution advised!")
+        elif 'Bearish' in final and nifty_trend == 'up':
+            st.warning("⚠️ Stock bearish but Nifty up — caution advised!")
+
         latest_price = df_1d['Close'].iloc[-1]
         strategy_suggestion = suggest_option_strategy(final, latest_price, latest_vix if latest_vix else 0)
         
@@ -347,6 +367,7 @@ def display_market_news(symbols):
     for symbol in symbols:
         st.markdown(f"#### 📌 News for {symbol}")
         stock_news = fetch_market_news_for_query(symbol)
+       
         if stock_news:
             for art in stock_news:
                 st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
