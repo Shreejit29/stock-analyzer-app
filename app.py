@@ -21,22 +21,22 @@ def stock_analyzer(symbols):
     def check_event_warnings(latest_vix, nifty_trend):
         warnings = []
     
-        # VIX warning
-        if latest_vix >= 22:
-            warnings.append(f"⚠️ High VIX detected ({latest_vix:.2f}) — market may be very volatile.")
-        
-        # Nifty sudden reversal alert
-        if abs(nifty_trend) >= 1.5:
-            warnings.append("⚠️ Large Nifty move in recent days — possible reaction to event/news.")
-        
-        # TODO: You could expand this to scrape a calendar of events (Fed meeting, RBI policy, etc)
-        
-        if warnings:
-            warning_text = "\n".join(warnings)
-        else:
-            warning_text = "✅ No major risk signals detected. Proceed with caution but no red flags."
+    # VIX warning
+    if latest_vix >= 22:
+        warnings.append(f"⚠️ High VIX detected ({latest_vix:.2f}) — market may be very volatile.")
     
-        return warning_text
+    # Nifty sudden reversal alert
+    if abs(nifty_trend) >= 1.5:
+        warnings.append("⚠️ Large Nifty move in recent days — possible reaction to event/news.")
+    
+    # TODO: You could expand this to scrape a calendar of events (Fed meeting, RBI policy, etc)
+    
+    if warnings:
+        warning_text = "\n".join(warnings)
+    else:
+        warning_text = "✅ No major risk signals detected. Proceed with caution but no red flags."
+
+    return warning_text
 
     def calc_support_resistance(close_series):
         window = 20
