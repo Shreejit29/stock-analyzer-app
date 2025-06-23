@@ -311,7 +311,7 @@ def stock_analyzer(symbols):
             st.write(f"🔹 {c}")
         st.write(f"➡ 1D Signal: {signal_1d}")
 
-        st.success(f"Final Combined Signal: {final}")
+    
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
         st.success(f"Final Combined Signal: {final}")
         if latest_vix and latest_vix > 20:
