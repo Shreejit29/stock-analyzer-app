@@ -18,6 +18,25 @@ def stock_analyzer(symbols):
         if price.iloc[-1] > price.iloc[-2] and indicator.iloc[-1] < indicator.iloc[-2]:
             return 'Bearish Divergence'
         return None
+    def check_event_warnings(latest_vix, nifty_trend):
+    warnings = []
+    
+    # VIX warning
+    if latest_vix >= 22:
+        warnings.append(f"⚠️ High VIX detected ({latest_vix:.2f}) — market may be very volatile.")
+    
+    # Nifty sudden reversal alert
+    if abs(nifty_trend) >= 1.5:
+        warnings.append("⚠️ Large Nifty move in recent days — possible reaction to event/news.")
+    
+    # TODO: You could expand this to scrape a calendar of events (Fed meeting, RBI policy, etc)
+    
+    if warnings:
+        warning_text = "\n".join(warnings)
+    else:
+        warning_text = "✅ No major risk signals detected. Proceed with caution but no red flags."
+
+    return warning_text
 
     def calc_support_resistance(close_series):
         window = 20
@@ -43,6 +62,20 @@ def stock_analyzer(symbols):
         df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
         df['ADX'] = ADXIndicator(high, low, close).adx()
         return df
+    def fetch_google_news_rss(query="India stock market"):
+        # Build the RSS feed URL
+        rss_url = f"https://news.google.com/rss/search?q={query.replace(' ', '%20')}&hl=en-IN&gl=IN&ceid=IN:en"
+        
+        feed = feedparser.parse(rss_url)
+        
+        if not feed.entries:
+            return "✅ No recent major headlines found."
+        
+        headlines = []
+        for entry in feed.entries[:5]:  # Get top 5 headlines
+            headlines.append(f"📰 {entry.title} ({entry.published})")
+        
+        return "\n".join(headlines)
     def detect_trend_reversal(df):
         rsi = df['RSI']
         obv = df['OBV']
@@ -69,6 +102,46 @@ def stock_analyzer(symbols):
             return "📉 Possible Bearish Reversal"
         else:
             return "⚖️ No clear reversal signal"
+    def suggest_option_strategy(signal, latest_price, vix_level):
+        """
+        Suggest detailed option strategy based on final signal, price, and VIX.
+        Returns a strategy description string.
+        """
+        atm = round(latest_price / 10) * 10  # Nearest 10 strike
+        spread_width = 20  # You can make this configurable
+        suggestion = ""
+    
+        if 'Strong Bullish' in signal:
+            suggestion = (f"💡 Option Strategy: **Bull Call Spread**\n"
+                          f"👉 Reason: Strong bullish signal with technical alignment.\n"
+                          f"👉 Action: Buy {atm} CE, Sell {atm + spread_width} CE.\n"
+                          f"👉 Target: Swing move over 2-3 days.\n"
+                          f"👉 Benefit: Limited risk with defined reward.\n")
+    
+        elif 'Strong Bearish' in signal:
+            suggestion = (f"💡 Option Strategy: **Bear Put Spread**\n"
+                          f"👉 Reason: Strong bearish signal detected.\n"
+                          f"👉 Action: Buy {atm} PE, Sell {atm - spread_width} PE.\n"
+                          f"👉 Target: Swing move over 2-3 days.\n"
+                          f"👉 Benefit: Limited risk, cost-effective bearish play.\n")
+    
+        elif 'Mixed' in signal or 'Neutral' in signal:
+            if vix_level >= 20:
+                suggestion = (f"💡 Option Strategy: **Iron Condor / Short Strangle**\n"
+                              f"👉 Reason: Mixed/neutral signal + high volatility (VIX {vix_level}).\n"
+                              f"👉 Action: Sell OTM Call & Put to collect premium.\n"
+                              f"👉 Benefit: Profit from time decay & volatility crush.\n")
+            else:
+                suggestion = (f"💡 Option Strategy: **Wait / Small Range Bound Trade**\n"
+                              f"👉 Reason: Market indecisive, VIX low (VIX {vix_level}).\n"
+                              f"👉 Action: Safer to wait for clearer direction.\n")
+    
+        else:
+            suggestion = (f"💡 Option Strategy: **No clear edge**\n"
+                          f"👉 Reason: Signal unclear; better to avoid entry.\n"
+                          f"👉 Action: Observe or look for better setups.\n")
+    
+        return suggestion
 
     def clean_yf_data(df):
         if df.empty:
@@ -214,12 +287,12 @@ def stock_analyzer(symbols):
             final = '📉 Strong Bearish (2 TF agree)'
         else:
             final = '⚖️ Mixed / Neutral'
+        
 
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1H Signal: {signal_1h}")
-        
         st.subheader(f"{symbol} 4H")
         
         for c in clues_4h:
@@ -233,31 +306,18 @@ def stock_analyzer(symbols):
 
         st.success(f"Final Combined Signal: {final}")
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
-
-def display_market_news():
-    st.markdown("### 📰 Latest Market News")
-    rss_sources = {
-        "Moneycontrol": "https://www.moneycontrol.com/rss/MCtopnews.xml",
-        "Economic Times": "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
-        "Business Standard": "https://www.business-standard.com/rss/home_page_top_stories.rss"
-    }
-
-    for source_name, rss_url in rss_sources.items():
-        st.markdown(f"#### {source_name}")
-        articles = fetch_market_news(rss_url)
-        for art in articles:
-            st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
-
-def fetch_market_news(rss_url, max_items=5):
-    feed = feedparser.parse(rss_url)
-    articles = []
-    for entry in feed.entries[:max_items]:
-        articles.append({
-            "title": entry.title,
-            "link": entry.link,
-            "published": entry.published if "published" in entry else "N/A"
-        })
-    return articles
+        
+        news_report = fetch_google_news_rss("Nifty OR Sensex OR RBI OR India stock market")
+        print("\n=== 📰 Market Headlines ===")
+        print(news_report)
+        
+        nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
+        event_warning = check_event_warnings(latest_vix, nifty_change_pct)
+        print("\n=== ⚠️ Market Risk Check ===")
+        print(event_warning)
+        latest_price = df_1d['Close'].iloc[-1]
+        option_suggestion = suggest_option_strategy(final, latest_price, latest_vix)
+        print(option_suggestion)
 
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer + Market News")
@@ -268,4 +328,4 @@ symbols = st.text_input("Enter stock symbols (comma-separated):", "RECLTD.NS, IN
 # Run analysis
 if st.button("Run Analysis"):
     stock_analyzer([s.strip() for s in symbols])
-    display_market_news()  # <<< CALL NEWS AFTER ANALYSIS
+    
