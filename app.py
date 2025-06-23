@@ -6,179 +6,265 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
+import streamlit as st
 import feedparser
 
-# === Helper Functions ===
-def fetch_google_news_rss(query="India stock market"):
-    rss_url = f"https://news.google.com/rss/search?q={query.replace(' ', '%20')}&hl=en-IN&gl=IN&ceid=IN:en"
-    feed = feedparser.parse(rss_url)
-    if not feed.entries:
-        return ["✅ No recent major headlines found."]
-    headlines = [f"📰 {entry.title}" for entry in feed.entries[:5]]
-    return headlines
+def stock_analyzer(symbols):
+    def detect_divergence(price, indicator):
+        if len(price) < 3 or len(indicator) < 3:
+            return None
+        if price.iloc[-1] < price.iloc[-2] and indicator.iloc[-1] > indicator.iloc[-2]:
+            return 'Bullish Divergence'
+        if price.iloc[-1] > price.iloc[-2] and indicator.iloc[-1] < indicator.iloc[-2]:
+            return 'Bearish Divergence'
+        return None
 
-def check_event_warnings(latest_vix, nifty_change_pct):
-    warnings = []
-    if latest_vix >= 22:
-        warnings.append(f"⚠️ High VIX detected ({latest_vix:.2f}) — market may be volatile.")
-    if abs(nifty_change_pct) >= 1.5:
-        warnings.append(f"⚠️ Large Nifty move ({nifty_change_pct:.2f}%) — possible event impact.")
-    if not warnings:
-        warnings.append("✅ No major risk signals detected.")
-    return warnings
-
-def suggest_option_strategy(signal, latest_price, vix_level):
-    atm = round(latest_price / 10) * 10
-    spread_width = 20
-    if 'Ultra Strong Bullish' in signal or 'Strong Bullish' in signal:
-        return (f"💡 **Bull Call Spread**\n"
-                f"👉 Buy {atm} CE, Sell {atm + spread_width} CE\n"
-                f"👉 Target swing move in 2-3 days")
-    elif 'Ultra Strong Bearish' in signal or 'Strong Bearish' in signal:
-        return (f"💡 **Bear Put Spread**\n"
-                f"👉 Buy {atm} PE, Sell {atm - spread_width} PE\n"
-                f"👉 Target swing move in 2-3 days")
-    elif 'Mixed' in signal or 'Neutral' in signal:
-        if vix_level >= 20:
-            return (f"💡 **Iron Condor / Short Strangle**\n"
-                    f"👉 Mixed signal + high volatility (VIX {vix_level:.2f})\n"
-                    f"👉 Sell OTM Call & Put to collect premium")
+    def calc_support_resistance(close_series):
+        window = 20
+        support = close_series.rolling(window).min().iloc[-1]
+        resistance = close_series.rolling(window).max().iloc[-1]
+        return support, resistance
+        
+    def compute_indicators(df):
+        close = df['Close']
+        high = df['High']
+        low = df['Low']
+        df['RSI'] = RSIIndicator(close).rsi()
+        macd_obj = MACD(close)
+        df['MACD'] = macd_obj.macd()
+        df['MACD_Signal'] = macd_obj.macd_signal()
+        df['EMA20'] = EMAIndicator(close, 20).ema_indicator()
+        df['EMA50'] = EMAIndicator(close, 50).ema_indicator()
+        df['EMA200'] = EMAIndicator(close, 200).ema_indicator()
+        df['OBV'] = OnBalanceVolumeIndicator(close, df['Volume']).on_balance_volume()
+        bb = BollingerBands(close)
+        df['BB_High'] = bb.bollinger_hband()
+        df['BB_Low'] = bb.bollinger_lband()
+        df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
+        df['ADX'] = ADXIndicator(high, low, close).adx()
+        return df
+    def detect_trend_reversal(df):
+        rsi = df['RSI']
+        obv = df['OBV']
+    
+        # Ensure enough data points
+        if len(rsi) < 5 or len(obv) < 5:
+            return "Not enough data"
+    
+        recent_rsi = rsi.tail(5)
+        recent_obv = obv.tail(5)
+    
+        # RSI conditions
+        rsi_bull_cond = (recent_rsi.iloc[-1] > recent_rsi.iloc[-2]) and (recent_rsi.min() < 35)
+        rsi_bear_cond = (recent_rsi.iloc[-1] < recent_rsi.iloc[-2]) and (recent_rsi.max() > 65)
+    
+        # OBV conditions
+        obv_bull_cond = (recent_obv.iloc[-1] > recent_obv.iloc[-2])
+        obv_bear_cond = (recent_obv.iloc[-1] < recent_obv.iloc[-2])
+    
+        # Combine conditions
+        if rsi_bull_cond and obv_bull_cond:
+            return "📈 Possible Bullish Reversal"
+        elif rsi_bear_cond and obv_bear_cond:
+            return "📉 Possible Bearish Reversal"
         else:
-            return "💡 Market indecisive + low VIX — safer to wait for clearer signal."
-    else:
-        return "💡 No clear strategy. Monitor further."
+            return "⚖️ No clear reversal signal"
 
-def compute_indicators(df):
-    close = df['Close']
-    high = df['High']
-    low = df['Low']
-    df['RSI'] = RSIIndicator(close).rsi()
-    macd = MACD(close)
-    df['MACD'] = macd.macd()
-    df['MACD_Signal'] = macd.macd_signal()
-    df['EMA20'] = EMAIndicator(close, 20).ema_indicator()
-    df['EMA50'] = EMAIndicator(close, 50).ema_indicator()
-    df['EMA200'] = EMAIndicator(close, 200).ema_indicator()
-    df['OBV'] = OnBalanceVolumeIndicator(close, df['Volume']).on_balance_volume()
-    bb = BollingerBands(close)
-    df['BB_High'] = bb.bollinger_hband()
-    df['BB_Low'] = bb.bollinger_lband()
-    df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
-    df['ADX'] = ADXIndicator(high, low, close).adx()
-    return df
+    def clean_yf_data(df):
+        if df.empty:
+            return None
+        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+        if 'Close' not in df.columns:
+            return None
+        df.dropna(subset=['Close'], inplace=True)
+        return df if not df.empty else None
 
-def clean_yf_data(df):
-    if df.empty:
-        return None
-    df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
-    if 'Close' not in df.columns:
-        return None
-    df.dropna(subset=['Close'], inplace=True)
-    return df if not df.empty else None
+    # Download VIX + Nifty trend
+    try:
+        df_vix = clean_yf_data(yf.download('^INDIAVIX', period='1d', interval='1m'))
+        latest_vix = df_vix['Close'].iloc[-1] if df_vix is not None else None
+        vix_comment = (
+            "High volatility" if latest_vix > 20 else
+            "Low volatility" if latest_vix < 14 else
+            "Moderate"
+        ) if latest_vix is not None else "N/A"
+    except:
+        latest_vix = None
+        vix_comment = "N/A"
 
-def analyze_timeframe(df, name):
-    df = compute_indicators(df)
-    latest = df.iloc[-1]
-    clues = []
-    if latest['RSI'] > 60:
-        clues.append('RSI Bullish')
-    elif latest['RSI'] < 40:
-        clues.append('RSI Bearish')
-    if latest['MACD'] > latest['MACD_Signal']:
-        clues.append('MACD Bullish')
-    elif latest['MACD'] < latest['MACD_Signal']:
-        clues.append('MACD Bearish')
-    if latest['Close'] > latest['EMA20'] > latest['EMA50']:
-        clues.append('EMA Bullish alignment')
-    elif latest['Close'] < latest['EMA20'] < latest['EMA50']:
-        clues.append('EMA Bearish alignment')
-    if latest['ADX'] > 25:
-        clues.append('Strong Trend')
-    else:
-        clues.append('Weak/Moderate Trend')
-    if latest['OBV'] > df['OBV'].iloc[-5]:
-        clues.append('OBV Up')
-    else:
-        clues.append('OBV Down')
+    try:
+        df_nifty = clean_yf_data(yf.download('^NSEI', period='7d'))
+        nifty_trend = (
+            "up" if df_nifty['Close'].iloc[-1] > df_nifty['Close'].iloc[0] else "down"
+        ) if df_nifty is not None else "N/A"
+    except:
+        nifty_trend = "N/A"
 
-    bull = sum('Bullish' in c or 'Up' in c for c in clues)
-    bear = sum('Bearish' in c or 'Down' in c for c in clues)
-    if bull > bear:
-        signal = f"Bullish ({name})"
-    elif bear > bull:
-        signal = f"Bearish ({name})"
-    else:
-        signal = f"Neutral ({name})"
-    return clues, signal, latest['Close']
+    for symbol in symbols:
+        st.header(f"🔍 Analyzing {symbol}")
 
-def stock_analyzer(symbol, vix, nifty_change):
-    df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
-    df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
-    df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
-    if not df_1h or not df_4h or not df_1d:
-        st.warning(f"⚠️ Data issue with {symbol}")
-        return None, None
-    clues1h, sig1h, price1h = analyze_timeframe(df_1h, '1H')
-    clues4h, sig4h, price4h = analyze_timeframe(df_4h, '4H')
-    clues1d, sig1d, price1d = analyze_timeframe(df_1d, '1D')
+        df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
+        df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
+        df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
 
-    # Display details
-    st.subheader(f"{symbol} - 1H")
-    for c in clues1h:
-        st.write(f"🔹 {c}")
-    st.write(f"➡ Signal: {sig1h}")
+        if df_4h is None or df_1d is None or df_1h is None:
+            st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
+            continue
 
-    st.subheader(f"{symbol} - 4H")
-    for c in clues4h:
-        st.write(f"🔹 {c}")
-    st.write(f"➡ Signal: {sig4h}")
+        df_4h = compute_indicators(df_4h)
+        df_1d = compute_indicators(df_1d)
+        df_1h = compute_indicators(df_1h)
 
-    st.subheader(f"{symbol} - 1D")
-    for c in clues1d:
-        st.write(f"🔹 {c}")
-    st.write(f"➡ Signal: {sig1d}")
+        def analyze_df(df, tf_name):
+            latest = df.iloc[-1]
+            close = df['Close']
+            clues = []
+            reversal_signal = detect_trend_reversal(df)
+            clues.append(reversal_signal)
+            atr_pct = (latest['ATR'] / latest['Close']) * 100
+            rsi_bull = 65 if atr_pct > 3 else 60
+            rsi_bear = 35 if atr_pct > 3 else 40
 
-    # Combine signals
-    signals = [sig1h, sig4h, sig1d]
-    if all('Bullish' in s for s in signals):
-        final = '💹 Ultra Strong Bullish'
-    elif all('Bearish' in s for s in signals):
-        final = '🔻 Ultra Strong Bearish'
-    elif sum('Bullish' in s for s in signals) >= 2:
-        final = '📈 Strong Bullish'
-    elif sum('Bearish' in s for s in signals) >= 2:
-        final = '📉 Strong Bearish'
-    else:
-        final = '⚖️ Mixed / Neutral'
+            if latest['RSI'] > rsi_bull:
+                clues.append(f'RSI Bullish (>{rsi_bull})')
+            elif latest['RSI'] < rsi_bear:
+                clues.append(f'RSI Bearish (<{rsi_bear})')
+            else:
+                clues.append('RSI Neutral')
 
-    st.success(f"Final Signal: {final}")
-    st.info(f"VIX: {vix:.2f}, Nifty % Change: {nifty_change:.2f}%")
+            if latest['MACD'] > latest['MACD_Signal']:
+                clues.append('MACD Bullish')
+            elif latest['MACD'] < latest['MACD_Signal']:
+                clues.append('MACD Bearish')
+                
+            macd_cross_bars = np.where((df['MACD'] > df['MACD_Signal']) != (df['MACD'].shift(1) > df['MACD_Signal'].shift(1)))[0]
+            if len(macd_cross_bars) > 0:
+                bars_since_cross = len(df) - macd_cross_bars[-1]
+                clues.append(f'MACD crossover {bars_since_cross} bars ago')
+                
+            atr_mean = df['ATR'].tail(10).mean()
+            if latest['ATR'] > 1.2 * atr_mean:
+                clues.append('High Volatility')
+            elif latest['ATR'] < 0.8 * atr_mean:
+                clues.append('Low Volatility')
+            else:
+                clues.append('Normal Volatility')    
+                
+          
+            if latest['Close'] > df['Close'].iloc[-2]:
+                clues.append('Last candle bullish close')
+            else:
+                clues.append('Last candle bearish close')
 
-    # Return final signal + latest price
-    return final, price1d
+           
+            recent_range = close.tail(10).max() - close.tail(10).min()
+            if recent_range / latest['Close'] < 0.02:
+                clues.append('Consolidation zone (<2% range)')
+               
+            if latest['ADX'] > 25:
+                clues.append('Strong Trend (ADX > 25)')
+            elif latest['ADX'] < 20:
+                clues.append('Weak Trend (ADX < 20)')
+            else:
+                clues.append('Moderate Trend (ADX 20-25)')
 
-# === Streamlit App ===
-st.title("📊 Multi-Timeframe Stock Analyzer + Option Suggestion")
+            if latest['Close'] > latest['EMA20'] > latest['EMA50']:
+                clues.append('EMA Bullish alignment')
+            elif latest['Close'] < latest['EMA20'] < latest['EMA50']:
+                clues.append('EMA Bearish alignment')
 
-symbols = st.text_input("Enter NSE symbols (comma-separated):", "RECLTD.NS, INFY.NS").split(",")
+            bb_width = latest['BB_High'] - latest['BB_Low']
+            bb_mean = (df['BB_High'] - df['BB_Low']).tail(10).mean()
+            if bb_width < 0.7 * bb_mean:
+                clues.append('BB Squeeze (Potential breakout)')
 
+            if latest['OBV'] > df['OBV'].iloc[-5]:
+                clues.append('OBV Up')
+            else:
+                clues.append('OBV Down')
+
+            div = detect_divergence(close.tail(5), df['RSI'].tail(5))
+            if div:
+                clues.append(div)
+
+            support, resistance = calc_support_resistance(close)
+            clues.append(f"Support ~{support:.2f}, Resistance ~{resistance:.2f}")
+
+            bull = sum('Bullish' in c or 'Up' in c for c in clues)
+            bear = sum('Bearish' in c or 'Down' in c for c in clues)
+            if bull > bear:
+                signal = f"Bullish (hold ~{3 if tf_name == '4H' else 7} bars)"
+            elif bear > bull:
+                signal = f"Bearish (hold ~{3 if tf_name == '4H' else 7} bars)"
+            else:
+                signal = f"Neutral (hold ~{3 if tf_name == '4H' else 7} bars)"
+
+            return clues, signal
+
+        clues_4h, signal_4h = analyze_df(df_4h, '4H')
+        clues_1d, signal_1d = analyze_df(df_1d, '1D')
+        clues_1h, signal_1h = analyze_df(df_1h, '1H')
+        if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
+            final = '💹 Ultra Strong Bullish (1H + 4H + 1D agree)'
+        elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
+            final = '🔻 Ultra Strong Bearish (1H + 4H + 1D agree)'
+        elif ('Bullish' in signal_1h and 'Bullish' in signal_4h) or ('Bullish' in signal_4h and 'Bullish' in signal_1d):
+            final = '📈 Strong Bullish (2 TF agree)'
+        elif ('Bearish' in signal_1h and 'Bearish' in signal_4h) or ('Bearish' in signal_4h and 'Bearish' in signal_1d):
+            final = '📉 Strong Bearish (2 TF agree)'
+        else:
+            final = '⚖️ Mixed / Neutral'
+
+        st.subheader(f"{symbol} 1H")
+        for c in clues_1h:
+            st.write(f"🔹 {c}")
+        st.write(f"➡ 1H Signal: {signal_1h}")
+        st.subheader(f"{symbol} 4H")
+        
+        for c in clues_4h:
+            st.write(f"🔹 {c}")
+        st.write(f"➡ 4H Signal: {signal_4h}")
+
+        st.subheader(f"{symbol} 1D")
+        for c in clues_1d:
+            st.write(f"🔹 {c}")
+        st.write(f"➡ 1D Signal: {signal_1d}")
+
+        st.success(f"Final Combined Signal: {final}")
+        st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
+
+def display_market_news():
+    st.markdown("### 📰 Latest Market News")
+    rss_sources = {
+        "Moneycontrol": "https://www.moneycontrol.com/rss/MCtopnews.xml",
+        "Economic Times": "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
+        "Business Standard": "https://www.business-standard.com/rss/home_page_top_stories.rss"
+    }
+
+    for source_name, rss_url in rss_sources.items():
+        st.markdown(f"#### {source_name}")
+        articles = fetch_market_news(rss_url)
+        for art in articles:
+            st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
+
+def fetch_market_news(rss_url, max_items=5):
+    feed = feedparser.parse(rss_url)
+    articles = []
+    for entry in feed.entries[:max_items]:
+        articles.append({
+            "title": entry.title,
+            "link": entry.link,
+            "published": entry.published if "published" in entry else "N/A"
+        })
+    return articles
+
+# === Streamlit app code ===
+st.title("📈 Stock Analyzer + Market News")
+
+# User input for stock symbols
+symbols = st.text_input("Enter stock symbols (comma-separated):", "RECLTD.NS, INFY.NS").split(",")
+
+# Run analysis
 if st.button("Run Analysis"):
-    vix_df = clean_yf_data(yf.download('^INDIAVIX', period='1d', interval='1m'))
-    nifty_df = clean_yf_data(yf.download('^NSEI', period='7d'))
-    vix_val = vix_df['Close'].iloc[-1] if vix_df is not None else 0
-    nifty_change = ((nifty_df['Close'].iloc[-1] - nifty_df['Close'].iloc[0]) / nifty_df['Close'].iloc[0] * 100) if nifty_df is not None else 0
-
-    for sym in symbols:
-        final_sig, last_price = stock_analyzer(sym.strip(), vix_val, nifty_change)
-        if final_sig and last_price:
-            st.markdown(suggest_option_strategy(final_sig, last_price, vix_val))
-
-    # Show news
-    st.subheader("📰 Top Market Headlines")
-    for news in fetch_google_news_rss("Nifty OR Sensex OR RBI OR India stock market"):
-        st.write(news)
-
-    # Event warnings
-    st.subheader("⚠️ Market Risk Check")
-    for warn in check_event_warnings(vix_val, nifty_change):
-        st.write(warn)
+    stock_analyzer([s.strip() for s in symbols])
+    display_market_news()  # <<< CALL NEWS AFTER ANALYSIS
