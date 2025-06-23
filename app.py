@@ -320,7 +320,7 @@ def stock_analyzer(symbols):
         print(option_suggestion)
 
 # === Streamlit app code ===
-st.title("📈 Stock Analyzer + Market News")
+st.title("📈 Stock Analyzer)
 
 # User input for stock symbols
 symbols = st.text_input("Enter stock symbols (comma-separated):", "RECLTD.NS, INFY.NS").split(",")
