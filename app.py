@@ -24,7 +24,53 @@ def stock_analyzer(symbols):
         support = close_series.rolling(window).min().iloc[-1]
         resistance = close_series.rolling(window).max().iloc[-1]
         return support, resistance
-        
+    def suggest_option_strategy(final_signal, latest_price, vix_level):
+        """
+        Suggest a suitable option strategy.
+        """
+        atm = round(latest_price / 10) * 10  # Round to nearest 10 strike
+        spread_width = 20
+        suggestion = ""
+    
+        if 'Ultra Strong Bullish' in final_signal or 'Strong Bullish' in final_signal:
+            suggestion = (
+                f"💡 **Bull Call Spread**\n"
+                f"👉 Buy {atm} CE, Sell {atm + spread_width} CE\n"
+                f"👉 Reason: Strong bullish signal with technical alignment\n"
+                f"👉 Target: Swing move 2-5 days\n"
+                f"👉 Risk: Limited risk, defined reward\n"
+            )
+        elif 'Ultra Strong Bearish' in final_signal or 'Strong Bearish' in final_signal:
+            suggestion = (
+                f"💡 **Bear Put Spread**\n"
+                f"👉 Buy {atm} PE, Sell {atm - spread_width} PE\n"
+                f"👉 Reason: Strong bearish signal detected\n"
+                f"👉 Target: Swing move 2-5 days\n"
+                f"👉 Risk: Limited risk, cost-effective bearish play\n"
+            )
+        elif 'Mixed' in final_signal or 'Neutral' in final_signal:
+            if vix_level and vix_level >= 20:
+                suggestion = (
+                    f"💡 **Iron Condor / Short Strangle**\n"
+                    f"👉 Sell OTM Call & Put, e.g., Sell {atm + 50} CE, Sell {atm - 50} PE\n"
+                    f"👉 Reason: Market indecisive + high volatility (VIX {vix_level:.2f})\n"
+                    f"👉 Benefit: Profit from time decay + volatility crush\n"
+                )
+            else:
+                suggestion = (
+                    f"💡 **Wait / Small Range Bound Trade**\n"
+                    f"👉 Reason: Neutral signal + low/moderate volatility (VIX {vix_level:.2f})\n"
+                    f"👉 Action: Wait for clearer setup\n"
+                )
+        else:
+            suggestion = (
+                f"💡 **No clear edge**\n"
+                f"👉 Reason: Signal unclear\n"
+                f"👉 Action: Observe or look for better setups\n"
+            )
+    
+        return suggestion
+            
     def compute_indicators(df):
         close = df['Close']
         high = df['High']
@@ -232,6 +278,12 @@ def stock_analyzer(symbols):
 
         st.success(f"Final Combined Signal: {final}")
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
+        
+        latest_price = df_1d['Close'].iloc[-1]
+        strategy_suggestion = suggest_option_strategy(final, latest_price, latest_vix if latest_vix else 0)
+        
+        st.subheader("💡 Option Strategy Suggestion")
+        st.markdown(strategy_suggestion)
 
 def display_market_news():
     st.markdown("### 📰 Latest Market News")
