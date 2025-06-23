@@ -21,22 +21,22 @@ def stock_analyzer(symbols):
     def check_event_warnings(latest_vix, nifty_trend):
         warnings = []
     
-    # VIX warning
-    if latest_vix >= 22:
-        warnings.append(f"⚠️ High VIX detected ({latest_vix:.2f}) — market may be very volatile.")
+        # VIX warning
+        if latest_vix >= 22:
+            warnings.append(f"⚠️ High VIX detected ({latest_vix:.2f}) — market may be very volatile.")
+        
+        # Nifty sudden reversal alert
+        if abs(nifty_trend) >= 1.5:
+            warnings.append("⚠️ Large Nifty move in recent days — possible reaction to event/news.")
+        
+        # TODO: You could expand this to scrape a calendar of events (Fed meeting, RBI policy, etc)
+        
+        if warnings:
+            warning_text = "\n".join(warnings)
+        else:
+            warning_text = "✅ No major risk signals detected. Proceed with caution but no red flags."
     
-    # Nifty sudden reversal alert
-    if abs(nifty_trend) >= 1.5:
-        warnings.append("⚠️ Large Nifty move in recent days — possible reaction to event/news.")
-    
-    # TODO: You could expand this to scrape a calendar of events (Fed meeting, RBI policy, etc)
-    
-    if warnings:
-        warning_text = "\n".join(warnings)
-    else:
-        warning_text = "✅ No major risk signals detected. Proceed with caution but no red flags."
-
-    return warning_text
+        return warning_text
 
     def calc_support_resistance(close_series):
         window = 20
@@ -288,7 +288,6 @@ def stock_analyzer(symbols):
         else:
             final = '⚖️ Mixed / Neutral'
         
-
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
@@ -307,17 +306,7 @@ def stock_analyzer(symbols):
         st.success(f"Final Combined Signal: {final}")
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
         
-        news_report = fetch_google_news_rss("Nifty OR Sensex OR RBI OR India stock market")
-        print("\n=== 📰 Market Headlines ===")
-        print(news_report)
-        
-        nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
-        event_warning = check_event_warnings(latest_vix, nifty_change_pct)
-        print("\n=== ⚠️ Market Risk Check ===")
-        print(event_warning)
-        latest_price = df_1d['Close'].iloc[-1]
-        option_suggestion = suggest_option_strategy(final, latest_price, latest_vix)
-        print(option_suggestion)
+
 
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
@@ -329,3 +318,14 @@ symbols = st.text_input("Enter stock symbols (comma-separated):", "RECLTD.NS, IN
 if st.button("Run Analysis"):
     stock_analyzer([s.strip() for s in symbols])
     
+news_report = fetch_google_news_rss("Nifty OR Sensex OR RBI OR India stock market")
+print("\n=== 📰 Market Headlines ===")
+print(news_report)
+
+nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
+event_warning = check_event_warnings(latest_vix, nifty_change_pct)
+print("\n=== ⚠️ Market Risk Check ===")
+print(event_warning)
+latest_price = df_1d['Close'].iloc[-1]
+option_suggestion = suggest_option_strategy(final, latest_price, latest_vix)
+print(option_suggestion)
