@@ -5,3 +5,4 @@ numpy
 ta
 feedparser
 scikit-learn
+pandas-ta
