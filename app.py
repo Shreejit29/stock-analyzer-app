@@ -305,10 +305,10 @@ def stock_analyzer(symbols):
                 signal = f"Neutral (hold ~{3 if tf_name == '4H' else 7} bars)"
 
             return clues, signal, support, resistance
+        clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
-        clues_1h, signal_1h, _, _ = analyze_df(df_1h, '1H')
-        clues_4h, signal_4h = analyze_df(df_4h, '4H')
-        
+        clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
+
         # === Compute weighted final signal ===
         score = 0
         if 'Bullish' in signal_1d:
@@ -369,7 +369,7 @@ def stock_analyzer(symbols):
         st.markdown(strategy_suggestion)
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.subheader("📏 Support/Resistance Alert")
-        sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
+        
 
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
