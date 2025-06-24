@@ -594,7 +594,7 @@ def candlestick_summary(df):
 st.title("📈 Stock Analyzer")
 
 # User input for stock symbols
-symbols = st.text_input("Enter stock symbols (comma-separated):", "RECLTD.NS, INFY.NS").split(",")
+symbols = st.text_input("Enter stock symbols (comma-separated):", "INFY.NS").split(",")
 
 # Run analysis
 if st.button("Run Analysis"):
