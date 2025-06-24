@@ -66,7 +66,6 @@ def stock_analyzer(symbols):
             return "✅ No immediate support/resistance barrier risk."
         else:
             return "\n".join(alerts)
-
     def suggest_option_strategy(final_signal, latest_price, vix_level):
         """
         Suggest a suitable option strategy.
@@ -369,7 +368,8 @@ def stock_analyzer(symbols):
         st.markdown(strategy_suggestion)
         st.subheader("📏 Support/Resistance Alert")
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
-                
+        st.markdown(sr_alert)
+
 
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
