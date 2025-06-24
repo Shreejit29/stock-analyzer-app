@@ -4,4 +4,4 @@ pandas
 numpy
 ta
 feedparser
-sklearn
+
