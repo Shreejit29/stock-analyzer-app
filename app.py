@@ -255,63 +255,7 @@ def stock_analyzer(symbols):
         df = compute_vwap(df)
         df = detect_candlestick_patterns(df)
         return df
-    def generate_final_trade_summary(patterns, indicators_clues, timeframe="positional"):
-        """
-        Create a combined summary based on patterns + indicators + trends for positional or swing.
-        """
-        bullish_patterns = [
-            "Hammer", "Inverted Hammer", "Bullish Engulfing",
-            "Piercing Line", "Morning Star", "Three White Soldiers"
-        ]
-        bearish_patterns = [
-            "Hanging Man", "Shooting Star", "Bearish Engulfing",
-            "Dark Cloud Cover", "Evening Star", "Three Black Crows"
-        ]
     
-        bull_candles = [p for p in patterns if p in bullish_patterns]
-        bear_candles = [p for p in patterns if p in bearish_patterns]
-    
-        # Analyze clues
-        bull_indicators = sum("Bullish" in clue or "Up" in clue for clue in indicators_clues)
-        bear_indicators = sum("Bearish" in clue or "Down" in clue for clue in indicators_clues)
-    
-        msg = f"📌 **Final {timeframe.title()} Trade Summary:** "
-    
-        if bull_candles and not bear_candles and bull_indicators > bear_indicators:
-            msg += (
-                f"Strong bullish sentiment detected based on candlestick patterns like {', '.join(bull_candles)} "
-                f"and confirming indicators. This suggests potential for upward price movement in a {timeframe} trade. "
-                "Consider long opportunities with risk management."
-            )
-        elif bear_candles and not bull_candles and bear_indicators > bull_indicators:
-            msg += (
-                f"Strong bearish sentiment detected based on candlestick patterns like {', '.join(bear_candles)} "
-                f"and confirming indicators. This suggests potential for downward price movement in a {timeframe} trade. "
-                "Short opportunities or protective strategies are worth considering."
-            )
-        elif bull_candles and bear_candles:
-            msg += (
-                f"Mixed signals from candlestick patterns ({', '.join(patterns)}) "
-                f"and indicators. Market sentiment appears indecisive for {timeframe} trading. "
-                "Best to wait for clearer confirmation or combine with other tools like volume and volatility measures."
-            )
-        elif bull_indicators > bear_indicators:
-            msg += (
-                "Indicators suggest a bullish bias, but no major candlestick confirmation. "
-                f"A cautious long position could be explored in {timeframe} trading, but look for added confirmation."
-            )
-        elif bear_indicators > bull_indicators:
-            msg += (
-                "Indicators suggest a bearish bias, but no major candlestick confirmation. "
-                f"Short bias might work for {timeframe}, but seek further confirmation."
-            )
-        else:
-            msg += (
-                "No strong directional bias detected from current candlestick patterns or indicators. "
-                f"Market may be consolidating. Patience is key before taking {timeframe} positions."
-            )
-    
-        return msg
     def detect_trend_reversal(df):
         rsi = df['RSI']
         obv = df['OBV']
@@ -533,8 +477,8 @@ def stock_analyzer(symbols):
         for c in clues_1h:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1H Signal: {signal_1h}")
-        st.subheader(f"{symbol} 4H")
         
+        st.subheader(f"{symbol} 4H")
         for c in clues_4h:
             st.write(f"🔹 {c}")
         st.write(f"➡ 4H Signal: {signal_4h}")
@@ -559,18 +503,8 @@ def stock_analyzer(symbols):
         st.markdown(candlestick_summary(df_4h))
         st.subheader("📊 Candlestick Patterns (1H)")
         st.markdown(candlestick_summary(df_1h))
-        
         latest_price = df_1d['Close'].iloc[-1]
         vix_for_strategy = latest_vix if latest_vix is not None else 0
-        strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy)
-        
-        st.subheader("💡 Option Strategy Suggestion")
-        st.markdown(strategy_suggestion)
-        st.subheader("📏 Support/Resistance Alert")
-        sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
-        st.markdown(sr_alert)
-
-
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
             nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
@@ -579,15 +513,13 @@ def stock_analyzer(symbols):
         
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-
-        positional_summary = generate_final_trade_summary(detected_patterns, clues_1d, "positional")
-        swing_summary = generate_final_trade_summary(detected_patterns, clues_4h, "swing")
+        strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy)
+        st.subheader("💡 Option Strategy Suggestion")
+        st.markdown(strategy_suggestion)
+        st.subheader("📏 Support/Resistance Alert")
+        sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
+        st.markdown(sr_alert)
         
-        st.subheader("📌 Final Positional Trade Signal")
-        st.markdown(positional_summary)
-        
-        st.subheader("📌 Final Swing Trade Signal")
-        st.markdown(swing_summary)
 
 def fetch_market_news_for_query(query, max_items=5):
     """
