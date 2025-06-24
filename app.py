@@ -8,7 +8,7 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 import streamlit as st
 import feedparser
-from sklearn.ensemble import GradientBoostingRegressor
+
 def compute_supertrend(df, period=10, multiplier=3):
     hl2 = (df['High'] + df['Low']) / 2
     atr = AverageTrueRange(df['High'], df['Low'], df['Close'], window=period).average_true_range()
@@ -185,40 +185,6 @@ def stock_analyzer(symbols):
         df = compute_vwap(df)
 
         return df
-    def train_and_predict(df, n_days=5):
-        required = ['Close', 'RSI', 'MACD', 'MACD_Signal', 'EMA20', 'EMA50', 'EMA200', 
-                    'OBV', 'BB_High', 'BB_Low', 'ATR', 'ADX']
-        for col in required:
-            if col not in df.columns:
-                st.warning(f"Missing {col} for prediction. Skipping.")
-                return None
-    
-        df = df.dropna(subset=required).copy()
-        if len(df) < 30:
-            st.warning("Not enough data for prediction.")
-            return None
-    
-        # Prepare data
-        X = df[required]
-        y = df['Close'].shift(-n_days)
-        data = X.copy()
-        data['Target'] = y
-        data = data.dropna()
-    
-        X_train = data[required]
-        y_train = data['Target']
-    
-        # Fit model
-        model = GradientBoostingRegressor(n_estimators=100, max_depth=3)
-        model.fit(X_train, y_train)
-    
-        # Predict for future days
-        latest_X = X.iloc[-1:]
-        preds = model.predict([latest_X.iloc[0]])  # Predict n_days ahead from last known indicators
-    
-        return [preds[0]] * n_days  # Return same prediction for simplicity
-
-   
     def detect_trend_reversal(df):
         rsi = df['RSI']
         obv = df['OBV']
@@ -289,9 +255,9 @@ def stock_analyzer(symbols):
     for symbol in symbols:
         st.header(f"🔍 Analyzing {symbol}")
 
-        df_4h = clean_yf_data(yf.download(symbol, period='12mo', interval='4h'))
-        df_1d = clean_yf_data(yf.download(symbol, period='12mo', interval='1d'))
-        df_1h = clean_yf_data(yf.download(symbol, period='12mo', interval='1h'))
+        df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
+        df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
+        df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
 
         if df_4h is None or df_1d is None or df_1h is None:
             st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
@@ -478,14 +444,7 @@ def stock_analyzer(symbols):
         
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        st.subheader("📊 Price Prediction (Next 1-7 days)")
-        predictions = train_and_predict(df_1d, n_days=7)
-        if predictions:
-            for i, p in enumerate(predictions, start=1):
-                st.write(f"Day {i}: Predicted Close = {p:.2f}")
-        else:
-            st.info("Prediction not available due to insufficient data or other issues.")
-        
+
 def fetch_market_news_for_query(query, max_items=5):
     """
     Fetches Google News RSS headlines based on the search query.
@@ -523,7 +482,6 @@ def display_market_news(symbols):
                 st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
         else:
             st.info(f"No recent headlines found for {symbol}.")
-
 
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer + Market News")
