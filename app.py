@@ -8,7 +8,7 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 import streamlit as st
 import feedparser
-
+from sklearn.ensemble import GradientBoostingRegressor
 def compute_supertrend(df, period=10, multiplier=3):
     hl2 = (df['High'] + df['Low']) / 2
     atr = AverageTrueRange(df['High'], df['Low'], df['Close'], window=period).average_true_range()
@@ -444,6 +444,11 @@ def stock_analyzer(symbols):
         
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
+        st.subheader("🔮 Price Prediction (Next 5 Days)")
+        predictions = train_and_predict(df_1d, n_days=5)
+        if predictions:
+            for i, p in enumerate(predictions, 1):
+                st.write(f"Day +{i}: Predicted Close ~ {p:.2f}")
 
 def fetch_market_news_for_query(query, max_items=5):
     """
@@ -482,6 +487,41 @@ def display_market_news(symbols):
                 st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
         else:
             st.info(f"No recent headlines found for {symbol}.")
+def train_and_predict(df, n_days=5):
+    # Ensure required indicators are present
+    required = ['Close', 'RSI', 'MACD', 'MACD_Signal', 'EMA20', 'EMA50', 'EMA200', 
+                'OBV', 'BB_High', 'BB_Low', 'ATR', 'ADX']
+    for col in required:
+        if col not in df.columns:
+            st.warning(f"Missing {col} for prediction. Skipping.")
+            return None
+
+    df = df.dropna(subset=required).copy()
+    if len(df) < 30:
+        st.warning("Not enough data for prediction.")
+        return None
+
+    X = df[required]
+    y = df['Close'].shift(-n_days)
+    data = X.copy()
+    data['Target'] = y
+    data = data.dropna()
+
+    X_train = data[required]
+    y_train = data['Target']
+
+    model = GradientBoostingRegressor(n_estimators=100, max_depth=3)
+    model.fit(X_train, y_train)
+
+    preds = []
+    latest_X = X_train.iloc[-1:]
+    for _ in range(n_days):
+        pred = model.predict(latest_X)[0]
+        preds.append(pred)
+        latest_X = latest_X.copy()
+        latest_X['Close'] = pred
+
+    return preds
 
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer + Market News")
