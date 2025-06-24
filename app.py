@@ -371,7 +371,7 @@ def stock_analyzer(symbols):
         st.subheader("📏 Support/Resistance Alert")
         st.markdown(sr_alert)
 
-         nifty_change_pct = None
+        nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
             nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
         
