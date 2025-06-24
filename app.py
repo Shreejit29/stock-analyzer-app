@@ -367,9 +367,9 @@ def stock_analyzer(symbols):
         
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
-        sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.subheader("📏 Support/Resistance Alert")
-        
+        sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
+                
 
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
