@@ -497,12 +497,12 @@ def stock_analyzer(symbols):
             st.warning(f"⚠️ {final} but Nifty down — caution advised!")
         elif 'Bearish' in final and nifty_trend == 'up':
             st.warning(f"⚠️ {final} but Nifty up — caution advised!")
-        st.subheader("📊 Candlestick Patterns (1D)")
-        st.markdown(candlestick_summary(df_1d))
-        st.subheader("📊 Candlestick Patterns (4H)")
-        st.markdown(candlestick_summary(df_4h))
         st.subheader("📊 Candlestick Patterns (1H)")
         st.markdown(candlestick_summary(df_1h))
+        st.subheader("📊 Candlestick Patterns (4H)")
+        st.markdown(candlestick_summary(df_4h))
+        st.subheader("📊 Candlestick Patterns (1D)")
+        st.markdown(candlestick_summary(df_1d))
         latest_price = df_1d['Close'].iloc[-1]
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
