@@ -51,10 +51,13 @@ def stock_analyzer(symbols):
         """
         Suggest a suitable option strategy.
         """
-        atm = round(latest_price / 10) * 10  # Round to nearest 10 strike
+        strike_step = 10  # You could adjust this based on the stock
+        atm = round(latest_price / strike_step) * strike_step
         spread_width = 20
+        vix_display = f"{vix_level:.2f}" if vix_level is not None else "N/A"
+        
         suggestion = ""
-    
+        
         if 'Ultra Strong Bullish' in final_signal or 'Strong Bullish' in final_signal:
             suggestion = (
                 f"💡 **Bull Call Spread**\n"
@@ -72,28 +75,29 @@ def stock_analyzer(symbols):
                 f"👉 Risk: Limited risk, cost-effective bearish play\n"
             )
         elif 'Mixed' in final_signal or 'Neutral' in final_signal:
-            if vix_level and vix_level >= 20:
+            if vix_level is not None and vix_level >= 20:
                 suggestion = (
                     f"💡 **Iron Condor / Short Strangle**\n"
                     f"👉 Sell OTM Call & Put, e.g., Sell {atm + 50} CE, Sell {atm - 50} PE\n"
-                    f"👉 Reason: Market indecisive + high volatility (VIX {vix_level:.2f})\n"
+                    f"👉 Reason: Market indecisive + high volatility (VIX {vix_display})\n"
                     f"👉 Benefit: Profit from time decay + volatility crush\n"
                 )
             else:
                 suggestion = (
                     f"💡 **Wait / Small Range Bound Trade**\n"
-                    f"👉 Reason: Neutral signal + low/moderate volatility (VIX {vix_level:.2f})\n"
+                    f"👉 Reason: Neutral signal + low/moderate volatility (VIX {vix_display})\n"
                     f"👉 Action: Wait for clearer setup\n"
                 )
         else:
             suggestion = (
                 f"💡 **No clear edge**\n"
-                f"👉 Reason: Signal unclear\n"
+                f"👉 Reason: Signal unclear or conflicting signals\n"
                 f"👉 Action: Observe or look for better setups\n"
             )
-    
+        
         return suggestion
-            
+
+
     def compute_indicators(df):
         close = df['Close']
         high = df['High']
@@ -285,16 +289,32 @@ def stock_analyzer(symbols):
         clues_4h, signal_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h = analyze_df(df_1h, '1H')
-        if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
-            final = '💹 Ultra Strong Bullish (1H + 4H + 1D agree)'
-        elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
-            final = '🔻 Ultra Strong Bearish (1H + 4H + 1D agree)'
-        elif ('Bullish' in signal_1h and 'Bullish' in signal_4h) or ('Bullish' in signal_4h and 'Bullish' in signal_1d):
-            final = '📈 Strong Bullish (2 TF agree)'
-        elif ('Bearish' in signal_1h and 'Bearish' in signal_4h) or ('Bearish' in signal_4h and 'Bearish' in signal_1d):
-            final = '📉 Strong Bearish (2 TF agree)'
+        # === Compute weighted final signal ===
+        score = 0
+        if 'Bullish' in signal_1d:
+            score += 0.6
+        if 'Bullish' in signal_4h:
+            score += 0.3
+        if 'Bullish' in signal_1h:
+            score += 0.1
+        
+        if 'Bearish' in signal_1d:
+            score -= 0.6
+        if 'Bearish' in signal_4h:
+            score -= 0.3
+        if 'Bearish' in signal_1h:
+            score -= 0.1
+        
+        if score >= 0.7:
+            final = '💹 Ultra Strong Bullish (weighted)'
+        elif score >= 0.4:
+            final = '📈 Bullish bias (weighted)'
+        elif score <= -0.7:
+            final = '🔻 Ultra Strong Bearish (weighted)'
+        elif score <= -0.4:
+            final = '📉 Bearish bias (weighted)'
         else:
-            final = '⚖️ Mixed / Neutral'
+            final = '⚖️ Mixed / Neutral (weighted)'
 
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
@@ -311,22 +331,24 @@ def stock_analyzer(symbols):
             st.write(f"🔹 {c}")
         st.write(f"➡ 1D Signal: {signal_1d}")
 
-    
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
         st.success(f"Final Combined Signal: {final}")
         if latest_vix and latest_vix > 20:
             st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
-        
+            
         if 'Bullish' in final and nifty_trend == 'down':
-            st.warning("⚠️ Stock bullish but Nifty down — caution advised!")
+            st.warning(f"⚠️ {final} but Nifty down — caution advised!")
         elif 'Bearish' in final and nifty_trend == 'up':
-            st.warning("⚠️ Stock bearish but Nifty up — caution advised!")
+            st.warning(f"⚠️ {final} but Nifty up — caution advised!")
 
         latest_price = df_1d['Close'].iloc[-1]
-        strategy_suggestion = suggest_option_strategy(final, latest_price, latest_vix if latest_vix else 0)
+        vix_for_strategy = latest_vix if latest_vix is not None else 0
+        strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy)
         
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
+
+ 
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
             nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
