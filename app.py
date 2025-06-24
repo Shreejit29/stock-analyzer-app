@@ -47,6 +47,26 @@ def stock_analyzer(symbols):
         support = close_series.rolling(window).min().iloc[-1]
         resistance = close_series.rolling(window).max().iloc[-1]
         return support, resistance
+    def support_resistance_alert(latest_price, support, resistance):
+        """
+        Generate alert if price is too close to support or resistance.
+        """
+        support_gap_pct = (latest_price - support) / latest_price * 100
+        resistance_gap_pct = (resistance - latest_price) / latest_price * 100
+        
+        alerts = []
+        
+        if support_gap_pct >= 0 and support_gap_pct < 2:
+            alerts.append(f"⚠️ Price is within {support_gap_pct:.2f}% of support — risk of breakdown if breached.")
+        
+        if resistance_gap_pct >= 0 and resistance_gap_pct < 2:
+            alerts.append(f"⚠️ Price is within {resistance_gap_pct:.2f}% of resistance — possible reversal zone.")
+        
+        if not alerts:
+            return "✅ No immediate support/resistance barrier risk."
+        else:
+            return "\n".join(alerts)
+
     def suggest_option_strategy(final_signal, latest_price, vix_level):
         """
         Suggest a suitable option strategy.
@@ -347,9 +367,11 @@ def stock_analyzer(symbols):
         
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
+        sr_alert = support_resistance_alert(latest_price, support, resistance)
+        st.subheader("📏 Support/Resistance Alert")
+        st.markdown(sr_alert)
 
- 
-        nifty_change_pct = None
+         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
             nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
         
