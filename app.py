@@ -304,7 +304,7 @@ def stock_analyzer(symbols):
             else:
                 signal = f"Neutral (hold ~{3 if tf_name == '4H' else 7} bars)"
 
-            return clues, signal
+            return clues, signal, support, resistance
 
         clues_4h, signal_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
