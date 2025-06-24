@@ -54,22 +54,7 @@ def compute_stoch_rsi(df, window=14, smooth1=3, smooth2=3):
 def compute_vwap(df):
     df['VWAP'] = (df['Volume'] * (df['High'] + df['Low'] + df['Close']) / 3).cumsum() / df['Volume'].cumsum()
     return df
-def compute_candlestick_patterns(df):
-    df['Bullish_Engulfing'] = ta.cdl_engulfing(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Bearish_Engulfing'] = ta.cdl_engulfing(df['Open'], df['High'], df['Low'], df['Close']) < 0
-    df['Hammer'] = ta.cdl_hammer(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Hanging_Man'] = ta.cdl_hangingman(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Shooting_Star'] = ta.cdl_shootingstar(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Inverted_Hammer'] = ta.cdl_invertedhammer(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Morning_Star'] = ta.cdl_morningstar(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Evening_Star'] = ta.cdl_eveningstar(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Doji'] = ta.cdl_doji(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Inside_Bar'] = ta.cdl_harami(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Piercing_Line'] = ta.cdl_piercing(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Dark_Cloud_Cover'] = ta.cdl_darkcloudcover(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Three_White_Soldiers'] = ta.cdl3whitesoldiers(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    df['Three_Black_Crows'] = ta.cdl3blackcrows(df['Open'], df['High'], df['Low'], df['Close']) > 0
-    return df
+
 def stock_analyzer(symbols):
     def detect_divergence(price, indicator):
         if len(price) < 3 or len(indicator) < 3:
@@ -498,41 +483,6 @@ def display_market_news(symbols):
                 st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
         else:
             st.info(f"No recent headlines found for {symbol}.")
-def display_candlestick_signals(df, timeframe):
-    latest = df.iloc[-1]
-    signals = []
-
-    if latest['Bullish_Engulfing']:
-        signals.append("📈 Bullish Engulfing detected — possible reversal up")
-    if latest['Bearish_Engulfing']:
-        signals.append("📉 Bearish Engulfing detected — possible reversal down")
-    if latest['Hammer']:
-        signals.append("🔨 Hammer detected — possible bullish reversal")
-    if latest['Hanging_Man']:
-        signals.append("🪓 Hanging Man detected — possible bearish reversal")
-    if latest['Shooting_Star']:
-        signals.append("🌠 Shooting Star detected — possible bearish reversal")
-    if latest['Inverted_Hammer']:
-        signals.append("🔄 Inverted Hammer detected — possible bullish reversal")
-    if latest['Morning_Star']:
-        signals.append("🌅 Morning Star detected — strong bullish reversal")
-    if latest['Evening_Star']:
-        signals.append("🌆 Evening Star detected — strong bearish reversal")
-    if latest['Doji']:
-        signals.append("⚖️ Doji detected — indecision, wait for confirmation")
-    if latest['Inside_Bar']:
-        signals.append("📌 Inside Bar detected — possible breakout soon")
-    if latest['Three_White_Soldiers']:
-        signals.append("🔥 Three White Soldiers — strong bullish continuation")
-    if latest['Three_Black_Crows']:
-        signals.append("❗ Three Black Crows — strong bearish continuation")
-
-    st.subheader(f"Candlestick Patterns ({timeframe})")
-    if signals:
-        for s in signals:
-            st.markdown(f"- {s}")
-    else:
-        st.write("No major candlestick pattern detected.")
 
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer + Market News")
@@ -545,6 +495,4 @@ if st.button("Run Analysis"):
     clean_symbols = [s.strip() for s in symbols]
     stock_analyzer(clean_symbols)
     display_market_news(clean_symbols)
-    display_candlestick_signals(df_1d, "1D")
-    display_candlestick_signals(df_4h, "4H")
-    display_candlestick_signals(df_1h, "1H")
+   
