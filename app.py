@@ -186,17 +186,15 @@ def stock_analyzer(symbols):
 
         return df
     def train_and_predict(df, n_days=5):
-        required = ['Close', 'RSI', 'MACD', 'MACD_Signal', 'EMA20', 'EMA50', 'EMA200',
+        required = ['Close', 'RSI', 'MACD', 'MACD_Signal', 'EMA20', 'EMA50', 'EMA200', 
                     'OBV', 'BB_High', 'BB_Low', 'ATR', 'ADX']
-        
-        # Ensure indicators present
         for col in required:
             if col not in df.columns:
                 st.warning(f"Missing {col} for prediction. Skipping.")
                 return None
     
         df = df.dropna(subset=required).copy()
-        if len(df) < 50:
+        if len(df) < 30:
             st.warning("Not enough data for prediction.")
             return None
     
@@ -210,32 +208,17 @@ def stock_analyzer(symbols):
         X_train = data[required]
         y_train = data['Target']
     
-        # Train model
+        # Fit model
         model = GradientBoostingRegressor(n_estimators=100, max_depth=3)
         model.fit(X_train, y_train)
     
-        # Start prediction loop
-        preds = []
-        df_temp = df.copy()
+        # Predict for future days
+        latest_X = X.iloc[-1:]
+        preds = model.predict([latest_X.iloc[0]])  # Predict n_days ahead from last known indicators
     
-        for day in range(n_days):
-            latest_X = df_temp[required].iloc[-1:]
-            pred_close = model.predict(latest_X)[0]
-            preds.append(pred_close)
-    
-            # Build synthetic row
-            new_row = df_temp.iloc[-1:].copy()
-            new_row['Close'] = pred_close
-            new_row['High'] = pred_close * 1.002  # +0.2% high
-            new_row['Low'] = pred_close * 0.998   # -0.2% low
-            new_row['Volume'] = new_row['Volume'].values[0] * 1.0  # keep volume same
-    
-            # Append and recompute indicators
-            df_temp = pd.concat([df_temp, new_row], ignore_index=True)
-            df_temp = compute_indicators(df_temp)
-    
-        return preds
+        return [preds[0]] * n_days  # Return same prediction for simplicity
 
+   
     def detect_trend_reversal(df):
         rsi = df['RSI']
         obv = df['OBV']
