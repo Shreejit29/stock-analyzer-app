@@ -162,7 +162,77 @@ def stock_analyzer(symbols):
             )
         
         return suggestion
+def detect_candlestick_patterns(df):
+    df = df.copy()
+    body = abs(df['Close'] - df['Open'])
+    range_ = df['High'] - df['Low']
+    upper_shadow = df['High'] - df[['Close', 'Open']].max(axis=1)
+    lower_shadow = df[['Close', 'Open']].min(axis=1) - df['Low']
 
+    df['Doji'] = (body <= 0.1 * range_)
+    df['Hammer'] = (
+        (body <= 0.3 * range_) &
+        (lower_shadow >= 2 * body) &
+        (upper_shadow <= 0.1 * range_)
+    )
+    df['Inverted_Hammer'] = (
+        (body <= 0.3 * range_) &
+        (upper_shadow >= 2 * body) &
+        (lower_shadow <= 0.1 * range_)
+    )
+    df['Hanging_Man'] = df['Hammer'] & (df['Close'] < df['Open'])
+    df['Shooting_Star'] = (
+        (body <= 0.3 * range_) &
+        (upper_shadow >= 2 * body) &
+        (lower_shadow <= 0.1 * range_)
+    )
+    df['Bullish_Engulfing'] = (
+        (df['Close'] > df['Open']) &
+        (df['Close'].shift(1) < df['Open'].shift(1)) &
+        (df['Open'] <= df['Close'].shift(1)) &
+        (df['Close'] >= df['Open'].shift(1))
+    )
+    df['Bearish_Engulfing'] = (
+        (df['Close'] < df['Open']) &
+        (df['Close'].shift(1) > df['Open'].shift(1)) &
+        (df['Open'] >= df['Close'].shift(1)) &
+        (df['Close'] <= df['Open'].shift(1))
+    )
+    df['Piercing_Line'] = (
+        (df['Close'].shift(1) < df['Open'].shift(1)) &
+        (df['Close'] > df['Open']) &
+        (df['Close'] > (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
+        (df['Open'] < df['Close'].shift(1))
+    )
+    df['Dark_Cloud_Cover'] = (
+        (df['Close'].shift(1) > df['Open'].shift(1)) &
+        (df['Close'] < df['Open']) &
+        (df['Close'] < (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
+        (df['Open'] > df['Close'].shift(1))
+    )
+    df['Three_White_Soldiers'] = (
+        (df['Close'] > df['Open']) &
+        (df['Close'].shift(1) > df['Open'].shift(1)) &
+        (df['Close'].shift(2) > df['Open'].shift(2))
+    )
+    df['Three_Black_Crows'] = (
+        (df['Close'] < df['Open']) &
+        (df['Close'].shift(1) < df['Open'].shift(1)) &
+        (df['Close'].shift(2) < df['Open'].shift(2))
+    )
+    df['Morning_Star'] = (
+        (df['Close'].shift(2) < df['Open'].shift(2)) &
+        (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
+        (df['Close'] > df['Open']) &
+        (df['Close'] > (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
+    )
+    df['Evening_Star'] = (
+        (df['Close'].shift(2) > df['Open'].shift(2)) &
+        (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
+        (df['Close'] < df['Open']) &
+        (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
+    )
+    return df
 
     def compute_indicators(df):
         close = df['Close']
@@ -184,6 +254,7 @@ def stock_analyzer(symbols):
         df = compute_supertrend(df)
         df = compute_stoch_rsi(df)
         df = compute_vwap(df)
+        df = detect_candlestick_patterns(df)
         return df
     def detect_trend_reversal(df):
         rsi = df['RSI']
@@ -425,7 +496,13 @@ def stock_analyzer(symbols):
             st.warning(f"⚠️ {final} but Nifty down — caution advised!")
         elif 'Bearish' in final and nifty_trend == 'up':
             st.warning(f"⚠️ {final} but Nifty up — caution advised!")
-
+        st.subheader("📊 Candlestick Patterns (1D)")
+        st.markdown(candlestick_summary(df_1d))
+        st.subheader("📊 Candlestick Patterns (4H)")
+        st.markdown(candlestick_summary(df_4h))
+        st.subheader("📊 Candlestick Patterns (1H)")
+        st.markdown(candlestick_summary(df_1h))
+        
         latest_price = df_1d['Close'].iloc[-1]
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy)
@@ -483,9 +560,40 @@ def display_market_news(symbols):
                 st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
         else:
             st.info(f"No recent headlines found for {symbol}.")
-
+def candlestick_summary(df):
+    recent = df.iloc[-1]
+    msgs = []
+    if recent['Doji']:
+        msgs.append("⚠️ Doji: Market indecision or reversal risk.")
+    if recent['Hammer']:
+        msgs.append("🔨 Hammer: Potential bullish reversal.")
+    if recent['Inverted_Hammer']:
+        msgs.append("🔄 Inverted Hammer: Possible bullish reversal.")
+    if recent['Hanging_Man']:
+        msgs.append("📉 Hanging Man: Bearish reversal risk at top.")
+    if recent['Shooting_Star']:
+        msgs.append("🌠 Shooting Star: Potential bearish reversal.")
+    if recent['Bullish_Engulfing']:
+        msgs.append("🚀 Bullish Engulfing: Strong bullish signal.")
+    if recent['Bearish_Engulfing']:
+        msgs.append("⚠️ Bearish Engulfing: Strong bearish signal.")
+    if recent['Piercing_Line']:
+        msgs.append("💡 Piercing Line: Bullish reversal hint.")
+    if recent['Dark_Cloud_Cover']:
+        msgs.append("🌩️ Dark Cloud Cover: Bearish reversal hint.")
+    if recent['Three_White_Soldiers']:
+        msgs.append("🏹 Three White Soldiers: Strong bullish momentum.")
+    if recent['Three_Black_Crows']:
+        msgs.append("🐦 Three Black Crows: Strong bearish momentum.")
+    if recent['Morning_Star']:
+        msgs.append("🌅 Morning Star: Bullish 3-bar reversal.")
+    if recent['Evening_Star']:
+        msgs.append("🌇 Evening Star: Bearish 3-bar reversal.")
+    if not msgs:
+        msgs.append("No strong candlestick pattern in last bar.")
+    return "\n".join(msgs)
 # === Streamlit app code ===
-st.title("📈 Stock Analyzer + Market News")
+st.title("📈 Stock Analyzer")
 
 # User input for stock symbols
 symbols = st.text_input("Enter stock symbols (comma-separated):", "RECLTD.NS, INFY.NS").split(",")
