@@ -9,6 +9,52 @@ from ta.volatility import BollingerBands, AverageTrueRange
 import streamlit as st
 import feedparser
 
+def compute_supertrend(df, period=10, multiplier=3):
+    hl2 = (df['High'] + df['Low']) / 2
+    atr = AverageTrueRange(df['High'], df['Low'], df['Close'], window=period).average_true_range()
+    supertrend = pd.Series(index=df.index, dtype='float64')
+    direction = pd.Series(index=df.index, dtype='int')
+
+    supertrend.iloc[0] = hl2.iloc[0] + multiplier * atr.iloc[0]
+    direction.iloc[0] = 1  
+
+    for i in range(1, len(df)):
+        if direction.iloc[i-1] == 1:
+            supertrend.iloc[i] = min(hl2.iloc[i] + multiplier * atr.iloc[i], supertrend.iloc[i-1])
+        else:
+            supertrend.iloc[i] = max(hl2.iloc[i] - multiplier * atr.iloc[i], supertrend.iloc[i-1])
+
+        if df['Close'].iloc[i] > supertrend.iloc[i]:
+            direction.iloc[i] = 1
+        else:
+            direction.iloc[i] = -1
+
+    df['Supertrend'] = supertrend
+    df['Supertrend_dir'] = direction
+    return df
+
+def compute_stoch_rsi(df, window=14, smooth1=3, smooth2=3):
+    delta = df['Close'].diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.rolling(window=window).mean()
+    avg_loss = loss.rolling(window=window).mean()
+
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+
+    stoch_rsi = (rsi - rsi.rolling(window).min()) / (rsi.rolling(window).max() - rsi.rolling(window).min())
+    stoch_rsi_k = stoch_rsi.rolling(smooth1).mean() * 100
+    stoch_rsi_d = stoch_rsi_k.rolling(smooth2).mean()
+
+    df['StochRSI_K'] = stoch_rsi_k
+    df['StochRSI_D'] = stoch_rsi_d
+    return df
+
+def compute_vwap(df):
+    df['VWAP'] = (df['Volume'] * (df['High'] + df['Low'] + df['Close']) / 3).cumsum() / df['Volume'].cumsum()
+    return df
+
 def stock_analyzer(symbols):
     def detect_divergence(price, indicator):
         if len(price) < 3 or len(indicator) < 3:
@@ -134,6 +180,10 @@ def stock_analyzer(symbols):
         df['BB_Low'] = bb.bollinger_lband()
         df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
         df['ADX'] = ADXIndicator(high, low, close).adx()
+        df = compute_supertrend(df)
+        df = compute_stoch_rsi(df)
+        df = compute_vwap(df)
+
         return df
     def detect_trend_reversal(df):
         rsi = df['RSI']
@@ -302,6 +352,21 @@ def stock_analyzer(symbols):
                 signal = f"Bearish (hold ~{3 if tf_name == '4H' else 7} bars)"
             else:
                 signal = f"Neutral (hold ~{3 if tf_name == '4H' else 7} bars)"
+            # Swing / Positional signals
+            swing_msg = ""
+            positional_msg = ""
+            if latest['Supertrend_dir'] == 1 and latest['StochRSI_K'] > 50:
+                swing_msg = "🚀 Swing Bullish Signal (Supertrend + StochRSI)"
+            elif latest['Supertrend_dir'] == -1 and latest['StochRSI_K'] < 50:
+                swing_msg = "⚠️ Swing Bearish Signal (Supertrend + StochRSI)"
+        
+            if latest['Close'] > latest['VWAP']:
+                positional_msg = "✅ Positional Bullish Bias (Price above VWAP)"
+            else:
+                positional_msg = "🔻 Positional Bearish Bias (Price below VWAP)"
+        
+            clues.append(swing_msg)
+            clues.append(positional_msg)
 
             return clues, signal, support, resistance
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
