@@ -161,77 +161,77 @@ def stock_analyzer(symbols):
             )
         
         return suggestion
-def detect_candlestick_patterns(df):
-    df = df.copy()
-    body = abs(df['Close'] - df['Open'])
-    range_ = df['High'] - df['Low']
-    upper_shadow = df['High'] - df[['Close', 'Open']].max(axis=1)
-    lower_shadow = df[['Close', 'Open']].min(axis=1) - df['Low']
-
-    df['Doji'] = (body <= 0.1 * range_)
-    df['Hammer'] = (
-        (body <= 0.3 * range_) &
-        (lower_shadow >= 2 * body) &
-        (upper_shadow <= 0.1 * range_)
-    )
-    df['Inverted_Hammer'] = (
-        (body <= 0.3 * range_) &
-        (upper_shadow >= 2 * body) &
-        (lower_shadow <= 0.1 * range_)
-    )
-    df['Hanging_Man'] = df['Hammer'] & (df['Close'] < df['Open'])
-    df['Shooting_Star'] = (
-        (body <= 0.3 * range_) &
-        (upper_shadow >= 2 * body) &
-        (lower_shadow <= 0.1 * range_)
-    )
-    df['Bullish_Engulfing'] = (
-        (df['Close'] > df['Open']) &
-        (df['Close'].shift(1) < df['Open'].shift(1)) &
-        (df['Open'] <= df['Close'].shift(1)) &
-        (df['Close'] >= df['Open'].shift(1))
-    )
-    df['Bearish_Engulfing'] = (
-        (df['Close'] < df['Open']) &
-        (df['Close'].shift(1) > df['Open'].shift(1)) &
-        (df['Open'] >= df['Close'].shift(1)) &
-        (df['Close'] <= df['Open'].shift(1))
-    )
-    df['Piercing_Line'] = (
-        (df['Close'].shift(1) < df['Open'].shift(1)) &
-        (df['Close'] > df['Open']) &
-        (df['Close'] > (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
-        (df['Open'] < df['Close'].shift(1))
-    )
-    df['Dark_Cloud_Cover'] = (
-        (df['Close'].shift(1) > df['Open'].shift(1)) &
-        (df['Close'] < df['Open']) &
-        (df['Close'] < (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
-        (df['Open'] > df['Close'].shift(1))
-    )
-    df['Three_White_Soldiers'] = (
-        (df['Close'] > df['Open']) &
-        (df['Close'].shift(1) > df['Open'].shift(1)) &
-        (df['Close'].shift(2) > df['Open'].shift(2))
-    )
-    df['Three_Black_Crows'] = (
-        (df['Close'] < df['Open']) &
-        (df['Close'].shift(1) < df['Open'].shift(1)) &
-        (df['Close'].shift(2) < df['Open'].shift(2))
-    )
-    df['Morning_Star'] = (
-        (df['Close'].shift(2) < df['Open'].shift(2)) &
-        (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
-        (df['Close'] > df['Open']) &
-        (df['Close'] > (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
-    )
-    df['Evening_Star'] = (
-        (df['Close'].shift(2) > df['Open'].shift(2)) &
-        (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
-        (df['Close'] < df['Open']) &
-        (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
-    )
-    return df
+    def detect_candlestick_patterns(df):
+        df = df.copy()
+        body = abs(df['Close'] - df['Open'])
+        range_ = df['High'] - df['Low']
+        upper_shadow = df['High'] - df[['Close', 'Open']].max(axis=1)
+        lower_shadow = df[['Close', 'Open']].min(axis=1) - df['Low']
+    
+        df['Doji'] = (body <= 0.1 * range_)
+        df['Hammer'] = (
+            (body <= 0.3 * range_) &
+            (lower_shadow >= 2 * body) &
+            (upper_shadow <= 0.1 * range_)
+        )
+        df['Inverted_Hammer'] = (
+            (body <= 0.3 * range_) &
+            (upper_shadow >= 2 * body) &
+            (lower_shadow <= 0.1 * range_)
+        )
+        df['Hanging_Man'] = df['Hammer'] & (df['Close'] < df['Open'])
+        df['Shooting_Star'] = (
+            (body <= 0.3 * range_) &
+            (upper_shadow >= 2 * body) &
+            (lower_shadow <= 0.1 * range_)
+        )
+        df['Bullish_Engulfing'] = (
+            (df['Close'] > df['Open']) &
+            (df['Close'].shift(1) < df['Open'].shift(1)) &
+            (df['Open'] <= df['Close'].shift(1)) &
+            (df['Close'] >= df['Open'].shift(1))
+        )
+        df['Bearish_Engulfing'] = (
+            (df['Close'] < df['Open']) &
+            (df['Close'].shift(1) > df['Open'].shift(1)) &
+            (df['Open'] >= df['Close'].shift(1)) &
+            (df['Close'] <= df['Open'].shift(1))
+        )
+        df['Piercing_Line'] = (
+            (df['Close'].shift(1) < df['Open'].shift(1)) &
+            (df['Close'] > df['Open']) &
+            (df['Close'] > (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
+            (df['Open'] < df['Close'].shift(1))
+        )
+        df['Dark_Cloud_Cover'] = (
+            (df['Close'].shift(1) > df['Open'].shift(1)) &
+            (df['Close'] < df['Open']) &
+            (df['Close'] < (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
+            (df['Open'] > df['Close'].shift(1))
+        )
+        df['Three_White_Soldiers'] = (
+            (df['Close'] > df['Open']) &
+            (df['Close'].shift(1) > df['Open'].shift(1)) &
+            (df['Close'].shift(2) > df['Open'].shift(2))
+        )
+        df['Three_Black_Crows'] = (
+            (df['Close'] < df['Open']) &
+            (df['Close'].shift(1) < df['Open'].shift(1)) &
+            (df['Close'].shift(2) < df['Open'].shift(2))
+        )
+        df['Morning_Star'] = (
+            (df['Close'].shift(2) < df['Open'].shift(2)) &
+            (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
+            (df['Close'] > df['Open']) &
+            (df['Close'] > (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
+        )
+        df['Evening_Star'] = (
+            (df['Close'].shift(2) > df['Open'].shift(2)) &
+            (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
+            (df['Close'] < df['Open']) &
+            (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
+        )
+        return df
 
     def compute_indicators(df):
         close = df['Close']
