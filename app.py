@@ -495,12 +495,14 @@ def stock_analyzer(symbols):
         
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        st.subheader("🔮 Price Prediction (Next 5 Days)")
-        predictions = train_and_predict(df_1d, n_days=5)
+        st.subheader("📊 Price Prediction (Next 1-7 days)")
+        predictions = train_and_predict(df_1d, n_days=7)
         if predictions:
-            for i, p in enumerate(predictions, 1):
-                st.write(f"Day +{i}: Predicted Close ~ {p:.2f}")
-
+            for i, p in enumerate(predictions, start=1):
+                st.write(f"Day {i}: Predicted Close = {p:.2f}")
+        else:
+            st.info("Prediction not available due to insufficient data or other issues.")
+        
 def fetch_market_news_for_query(query, max_items=5):
     """
     Fetches Google News RSS headlines based on the search query.
