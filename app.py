@@ -451,9 +451,7 @@ def stock_analyzer(symbols):
         gap_info = detect_gap(df_1d)
         st.info(gap_info)
         df_1h = compute_indicators(df_1h)
-        
-        )
-
+             
         def analyze_df(df, tf_name):
             latest = df.iloc[-1]
             close = df['Close']
