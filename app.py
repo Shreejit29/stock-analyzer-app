@@ -563,7 +563,7 @@ def stock_analyzer(symbols):
             signal_1d=signal_1d,
             sentiment_score=sentiment_score, 
             vix=latest_vix,
-            nifty_trend=nifty_trend         
+            nifty_trend=nifty_trend)         
         # === Compute weighted final signal ===
         score = 0
         if 'Bullish' in signal_1d:
