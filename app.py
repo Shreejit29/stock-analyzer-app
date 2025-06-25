@@ -58,6 +58,7 @@ def display_sentiment_summary(symbols):
             st.markdown(f"**🧾 {symbol} Sentiment**: `{sentiment:+.2f}` → {label}")
         else:
             st.warning(f"No sentiment found for {symbol}")
+
 def compute_supertrend(df, period=10, multiplier=3):
     hl2 = (df['High'] + df['Low']) / 2
     atr = AverageTrueRange(df['High'], df['Low'], df['Close'], window=period).average_true_range()
@@ -441,6 +442,9 @@ def stock_analyzer(symbols):
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
         df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
+        sentiment_score = fetch_sentiment_from_newsapi(symbol)
+        if sentiment_score is None:
+            sentiment_score = 0.0  # default neutral
 
         if df_4h is None or df_1d is None or df_1h is None:
             st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
