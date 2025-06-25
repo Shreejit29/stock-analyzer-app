@@ -161,7 +161,30 @@ def stock_analyzer(symbols):
             )
         
         return suggestion
-    def detect_candlestick_patterns_with_volume(df):
+   
+    def compute_indicators(df):
+        close = df['Close']
+        high = df['High']
+        low = df['Low']
+        df['RSI'] = RSIIndicator(close).rsi()
+        macd_obj = MACD(close)
+        df['MACD'] = macd_obj.macd()
+        df['MACD_Signal'] = macd_obj.macd_signal()
+        df['EMA20'] = EMAIndicator(close, 20).ema_indicator()
+        df['EMA50'] = EMAIndicator(close, 50).ema_indicator()
+        df['EMA200'] = EMAIndicator(close, 200).ema_indicator()
+        df['OBV'] = OnBalanceVolumeIndicator(close, df['Volume']).on_balance_volume()
+        bb = BollingerBands(close)
+        df['BB_High'] = bb.bollinger_hband()
+        df['BB_Low'] = bb.bollinger_lband()
+        df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
+        df['ADX'] = ADXIndicator(high, low, close).adx()
+        df = compute_supertrend(df)
+        df = compute_stoch_rsi(df)
+        df = compute_vwap(df)
+        df = detect_candlestick_patterns_with_volume(df)
+        return df
+     def detect_candlestick_patterns_with_volume(df):
         """
         Detect common candlestick patterns with volume confirmation.
         """
@@ -271,30 +294,6 @@ def stock_analyzer(symbols):
             patterns['Dark Cloud Cover'] = "⚠️ Dark cloud cover — bearish reversal with volume confirmation."
     
         return patterns
-
-    def compute_indicators(df):
-        close = df['Close']
-        high = df['High']
-        low = df['Low']
-        df['RSI'] = RSIIndicator(close).rsi()
-        macd_obj = MACD(close)
-        df['MACD'] = macd_obj.macd()
-        df['MACD_Signal'] = macd_obj.macd_signal()
-        df['EMA20'] = EMAIndicator(close, 20).ema_indicator()
-        df['EMA50'] = EMAIndicator(close, 50).ema_indicator()
-        df['EMA200'] = EMAIndicator(close, 200).ema_indicator()
-        df['OBV'] = OnBalanceVolumeIndicator(close, df['Volume']).on_balance_volume()
-        bb = BollingerBands(close)
-        df['BB_High'] = bb.bollinger_hband()
-        df['BB_Low'] = bb.bollinger_lband()
-        df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
-        df['ADX'] = ADXIndicator(high, low, close).adx()
-        df = compute_supertrend(df)
-        df = compute_stoch_rsi(df)
-        df = compute_vwap(df)
-        df = detect_candlestick_patterns_with_volume(df)
-        return df
-    
     def detect_trend_reversal(df):
         rsi = df['RSI']
         obv = df['OBV']
@@ -483,8 +482,6 @@ def stock_analyzer(symbols):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
         
-
-
         # === Compute weighted final signal ===
         score = 0
         if 'Bullish' in signal_1d:
