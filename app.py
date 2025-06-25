@@ -317,7 +317,57 @@ def stock_analyzer(symbols):
         df = compute_vwap(df)
         df = detect_candlestick_patterns(df)
         return df
+    def calculate_confidence(signal_1h, signal_4h, signal_1d,
+                         sentiment_score, vix, nifty_trend,
+                         volume_strength):
+        score = 0
+        weights = {'1D': 30, '4H': 25, '1H': 20}
     
+        if 'Bullish' in signal_1d:
+            score += weights['1D']
+        elif 'Bearish' in signal_1d:
+            score -= weights['1D']
+    
+        if 'Bullish' in signal_4h:
+            score += weights['4H']
+        elif 'Bearish' in signal_4h:
+            score -= weights['4H']
+    
+        if 'Bullish' in signal_1h:
+            score += weights['1H']
+        elif 'Bearish' in signal_1h:
+            score -= weights['1H']
+    
+        # Sentiment
+        if sentiment_score > 0.3:
+            score += 10
+        elif sentiment_score < -0.3:
+            score -= 10
+    
+        # Volume strength
+        if volume_strength == "High":
+            score += 10
+        elif volume_strength == "Low":
+            score -= 10
+    
+        # VIX penalty
+        if vix:
+            if vix > 22:
+                score -= 5
+            elif vix < 12:
+                score -= 3
+    
+        # Nifty alignment
+        if nifty_trend == 'up' and 'Bearish' in signal_1d:
+            score -= 5
+        elif nifty_trend == 'down' and 'Bullish' in signal_1d:
+            score -= 5
+        elif nifty_trend in ['up', 'down']:
+            score += 2
+    
+        # Normalize to 0-100
+        return max(0, min(100, 50 + score))
+
     def detect_trend_reversal(df):
         rsi = df['RSI']
         obv = df['OBV']
@@ -401,6 +451,8 @@ def stock_analyzer(symbols):
         gap_info = detect_gap(df_1d)
         st.info(gap_info)
         df_1h = compute_indicators(df_1h)
+        
+        )
 
         def analyze_df(df, tf_name):
             latest = df.iloc[-1]
@@ -505,7 +557,15 @@ def stock_analyzer(symbols):
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
-        
+       
+
+        confidence_score = calculate_confidence(
+            signal_1h=signal_1h,
+            signal_4h=signal_4h,
+            signal_1d=signal_1d,
+            sentiment_score=sentiment_score, 
+            vix=latest_vix,
+            nifty_trend=nifty_trend         
         # === Compute weighted final signal ===
         score = 0
         if 'Bullish' in signal_1d:
@@ -579,7 +639,19 @@ def stock_analyzer(symbols):
         st.subheader("📏 Support/Resistance Alert")
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.markdown(sr_alert)
-        
+        st.subheader("📌 Final Strategy Summary")
+
+        st.markdown(f"""
+        **Intraday Signal (1H):** `{signal_1h}`  
+        **Swing Signal (4H):** `{signal_4h}`  
+        **Positional Signal (1D):** `{signal_1d}`  
+        **Volume Confirmation:** `{volume_strength}`  
+        **Sentiment Score:** `{sentiment_score:.2f}`  
+        **VIX Level:** `{latest_vix:.2f if latest_vix else 'N/A'}`  
+        **Market Trend (Nifty):** `{nifty_trend}`  
+        **🔐 Confidence Score:** `{confidence_score}/100`
+        """)
+
 
 def candlestick_summary(df):
     recent = df.iloc[-1]
@@ -628,6 +700,121 @@ def candlestick_summary(df):
         msgs.append("No strong candlestick pattern in last bar.")
 
     return "\n".join(msgs)
+def generate_final_summary(symbol, signal_1h, signal_4h, signal_1d,
+                           clues_1h, clues_4h, clues_1d,
+                           sentiment_score, latest_vix,
+                           nifty_trend, support, resistance,
+                           latest_price, df_1d):
+    
+    summary = [f"📌 **Final Technical Summary for `{symbol}`**\n"]
+    
+    # ==== Volume Check ====
+    volume_strength = detect_volume_strength(df_1d)
+    if volume_strength == "High":
+        vol_msg = "📈 High volume → confirms signal"
+        vol_score = 10
+    elif volume_strength == "Low":
+        vol_msg = "📉 Low volume → weak signal (avoid entry)"
+        vol_score = -10
+    else:
+        vol_msg = "🔁 Normal volume"
+        vol_score = 0
+    
+    # ==== Signal Weighting ====
+    score = 0
+    signal_type = ""
+    if 'Bullish' in signal_1d: score += 30; signal_type = "Positional Bullish"
+    if 'Bullish' in signal_4h: score += 25; signal_type = "Swing Bullish"
+    if 'Bullish' in signal_1h: score += 20; signal_type = "Intraday Bullish"
+    if 'Bearish' in signal_1d: score -= 30; signal_type = "Positional Bearish"
+    if 'Bearish' in signal_4h: score -= 25; signal_type = "Swing Bearish"
+    if 'Bearish' in signal_1h: score -= 20; signal_type = "Intraday Bearish"
+
+    score += vol_score
+
+    # ==== Sentiment Score ====
+    if sentiment_score > 0.3:
+        sent_msg = "🟢 Positive sentiment from news & VADER"
+        score += 10
+    elif sentiment_score < -0.3:
+        sent_msg = "🔴 Negative sentiment from news & VADER"
+        score -= 10
+    else:
+        sent_msg = "⚪ Neutral sentiment"
+    
+    # ==== VIX Risk Factor ====
+    if latest_vix is not None:
+        if latest_vix >= 22:
+            vix_msg = f"⚠️ High VIX ({latest_vix:.2f}) → High volatility, reduce size"
+            score -= 5
+        elif latest_vix < 12:
+            vix_msg = f"⚠️ Very Low VIX ({latest_vix:.2f}) → Risk of reversal/complacency"
+        else:
+            vix_msg = f"🟡 Moderate VIX ({latest_vix:.2f})"
+    else:
+        vix_msg = "❓ VIX Data Unavailable"
+
+    # ==== Nifty Trend Check ====
+    nifty_msg = f"🔁 Nifty currently trending `{nifty_trend}`" if nifty_trend else "❓ Nifty Trend Unknown"
+
+    # ==== Confidence Categorization ====
+    abs_score = abs(score)
+    if abs_score >= 60:
+        conf = "🔒 High Confidence (65-100)"
+    elif abs_score >= 40:
+        conf = "🔶 Medium Confidence (40-64)"
+    else:
+        conf = "⚠️ Low Confidence (<40)"
+
+    # ==== Bias Type ====
+    if score > 0:
+        bias = "📈 **Bullish Bias**"
+    elif score < 0:
+        bias = "📉 **Bearish Bias**"
+    else:
+        bias = "⚖️ **Neutral Bias**"
+
+    # ==== Best Fit Strategy ====
+    best_fit = ""
+    if abs(score) >= 60:
+        if '1D' in signal_type:
+            best_fit = "📊 **Best Fit: Positional Trade (5-15 Days)**"
+        elif '4H' in signal_type:
+            best_fit = "⏱️ **Best Fit: Swing Trade (2-5 Days)**"
+        else:
+            best_fit = "🕐 **Best Fit: Intraday Trade (0-1 Day)**"
+    else:
+        best_fit = "⏸️ **Uncertain Setup: Wait or Reduce Risk**"
+
+    # ==== Candlestick Patterns ====
+    candle_patterns = []
+    recent = df_1d.iloc[-1]
+    for col in df_1d.columns:
+        if recent.get(col) == True and col not in ['Doji']:  # exclude Doji as it's too common
+            candle_patterns.append(col.replace("_", " "))
+
+    if not candle_patterns:
+        candle_summary = "No strong candlestick signal"
+    else:
+        candle_summary = "🕯️ " + ", ".join(candle_patterns)
+
+    # ==== Support/Resistance Zone ====
+    sr_alert = support_resistance_alert(latest_price, support, resistance)
+
+    # ==== Final Summary Output ====
+    summary += [
+        f"- 🧭 {best_fit}",
+        f"- {bias}",
+        f"- 🔢 **Confidence Score:** {abs_score}% → {conf}",
+        f"- 💬 Sentiment: {sent_msg}",
+        f"- 🌡️ Volatility: {vix_msg}",
+        f"- 🔄 Market Trend: {nifty_msg}",
+        f"- 📊 Volume: {vol_msg}",
+        f"- 📏 Support/Resistance: {sr_alert}",
+        f"- 🕯️ Candlestick Signals: {candle_summary}",
+    ]
+
+    return "\n".join(summary)
 
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
@@ -640,4 +827,3 @@ if st.button("Run Analysis"):
     clean_symbols = [s.strip() for s in symbols]
     stock_analyzer(clean_symbols)
     display_sentiment_summary(clean_symbols) 
-
