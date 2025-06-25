@@ -292,7 +292,7 @@ def stock_analyzer(symbols):
         df = compute_supertrend(df)
         df = compute_stoch_rsi(df)
         df = compute_vwap(df)
-        df = detect_candlestick_patterns(df)
+        df = detect_candlestick_patterns_with_volume(df)
         return df
     
     def detect_trend_reversal(df):
