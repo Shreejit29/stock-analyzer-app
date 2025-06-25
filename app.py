@@ -583,7 +583,6 @@ def stock_analyzer(symbols):
         st.subheader("📏 Support/Resistance Alert")
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.markdown(sr_alert)
-        st.subheader("📌 Final Strategy Summary")
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
         latest_price = df_1d['Close'].iloc[-1]
         support, resistance = calculate_support_resistance(df_1d)
