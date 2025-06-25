@@ -748,7 +748,7 @@ def stock_analyzer(symbols):
         sentiment_score=sentiment_score, 
         vix=latest_vix,
         nifty_trend=nifty_trend)   
-        df_1d = get_historical_data(symbol, interval="1d", period="3mo")
+        df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
         latest_price = df_1d['Close'].iloc[-1]
         support, resistance = calculate_support_resistance(df_1d)
 
