@@ -319,8 +319,7 @@ def stock_analyzer(symbols):
         df = detect_candlestick_patterns(df)
         return df
     def calculate_confidence(signal_1h, signal_4h, signal_1d,
-                         sentiment_score, vix, nifty_trend,
-                         volume_strength):
+                         sentiment_score, vix, nifty_trend):
         score = 0
         weights = {'1D': 30, '4H': 25, '1H': 20}
     
