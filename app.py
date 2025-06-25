@@ -607,7 +607,13 @@ def stock_analyzer(symbols):
         st.success(f"Final Combined Signal: {final}")
         if latest_vix and latest_vix > 20:
             st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
-            
+        confidence_score = calculate_confidence(
+        signal_1h=signal_1h,
+        signal_4h=signal_4h,
+        signal_1d=signal_1d,
+        sentiment_score=sentiment_score, 
+        vix=latest_vix,
+        nifty_trend=nifty_trend)   
         if 'Bullish' in final and nifty_trend == 'down':
             st.warning(f"⚠️ {final} but Nifty down — caution advised!")
         elif 'Bearish' in final and nifty_trend == 'up':
@@ -811,13 +817,7 @@ def generate_final_summary(symbol, signal_1h, signal_4h, signal_1d,
 
     return "\n".join(summary)
 
-confidence_score = calculate_confidence(
-signal_1h=signal_1h,
-signal_4h=signal_4h,
-signal_1d=signal_1d,
-sentiment_score=sentiment_score, 
-vix=latest_vix,
-nifty_trend=nifty_trend)       
+    
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
 
