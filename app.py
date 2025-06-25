@@ -355,6 +355,83 @@ def stock_analyzer(symbols):
             return f"⚠️ {gap_pct:.2f}% gap at open — exercise caution!"
         else:
             return "No significant gap."
+    def get_trade_signal_summary(
+    symbol,
+    signal_1h, signal_4h, signal_1d,
+    candles_1h, candles_4h, candles_1d,
+    clues_1h, clues_4h, clues_1d,
+    latest_price, support, resistance):
+        score = 0
+        trade_type = ""
+        candle_patterns = []
+        clues = []
+    
+        # Trade Signal Type Logic
+        if 'Bullish' in signal_1d:
+            score += 30
+            trade_type = "📈 Positional (5–15 Days)"
+            candle_patterns = candles_1d
+            clues = clues_1d
+        elif 'Bearish' in signal_1d:
+            score -= 30
+            trade_type = "📉 Positional (5–15 Days)"
+            candle_patterns = candles_1d
+            clues = clues_1d
+    
+        if 'Bullish' in signal_4h:
+            score += 25
+            trade_type = "📈 Swing (2–5 Days)"
+            candle_patterns = candles_4h
+            clues = clues_4h
+        elif 'Bearish' in signal_4h:
+            score -= 25
+            trade_type = "📉 Swing (2–5 Days)"
+            candle_patterns = candles_4h
+            clues = clues_4h
+    
+        if 'Bullish' in signal_1h:
+            score += 20
+            trade_type = "📈 Intraday (Same Day)"
+            candle_patterns = candles_1h
+            clues = clues_1h
+        elif 'Bearish' in signal_1h:
+            score -= 20
+            trade_type = "📉 Intraday (Same Day)"
+            candle_patterns = candles_1h
+            clues = clues_1h
+    
+        # Support/Resistance Zone Check
+        sr_alert = ""
+        if latest_price and support and resistance:
+            buffer = 0.5
+            lower = support * (1 + buffer / 100)
+            upper = resistance * (1 - buffer / 100)
+            if latest_price <= lower:
+                sr_alert = "📉 Near Support – Good Risk/Reward Entry"
+            elif latest_price >= upper:
+                sr_alert = "📈 Near Resistance – Be Cautious"
+            else:
+                sr_alert = "📊 Between Support & Resistance"
+        else:
+            sr_alert = "❓ Support/Resistance Data Missing"
+    
+        # Candlestick Pattern Summary
+        candle_summary = (
+            "🕯️ Candlestick: " + ", ".join(candle_patterns)
+            if candle_patterns else "🕯️ No strong candlestick signals"
+        )
+    
+        # Technical Clues Summary
+        clue_summary = (
+            "📌 Technical Clues: " + ", ".join(clues)
+            if clues else "📌 No strong technical confirmations"
+        )
+    
+        # Final Result
+        if abs(score) < 20:
+            return f"⏸️ `{symbol}` → No strong trade setup\n\n{candle_summary}\n{clue_summary}\n{sr_alert}"
+    
+        return f"✅ `{symbol}` → Best Trade Type: {trade_type}\n\n{candle_summary}\n{clue_summary}\n{sr_alert}"
 
     def clean_yf_data(df):
         if df.empty:
@@ -583,7 +660,22 @@ def stock_analyzer(symbols):
         st.subheader("📏 Support/Resistance Alert")
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.markdown(sr_alert)
-        
+        summary = get_trade_signal_summary(
+        symbol=symbol,
+        signal_1h=signal_1h,
+        signal_4h=signal_4h,
+        signal_1d=signal_1d,
+        candles_1h=candlestick_patterns_1h,
+        candles_4h=candlestick_patterns_4h,
+        candles_1d=candlestick_patterns_1d,
+        clues_1h=clues_1h,
+        clues_4h=clues_4h,
+        clues_1d=clues_1d,
+        latest_price=latest_price,
+        support=support,
+        resistance=resistance)
+        st.markdown(summary)
+
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
