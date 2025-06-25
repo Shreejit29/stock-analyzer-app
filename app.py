@@ -627,7 +627,7 @@ def stock_analyzer(symbols):
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.markdown(sr_alert)
         st.subheader("📌 Final Strategy Summary")
-         confidence_score = calculate_confidence(
+        confidence_score = calculate_confidence(
         signal_1h=signal_1h,
         signal_4h=signal_4h,
         signal_1d=signal_1d,
