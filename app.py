@@ -748,23 +748,26 @@ def stock_analyzer(symbols):
         sentiment_score=sentiment_score, 
         vix=latest_vix,
         nifty_trend=nifty_trend)   
+        df_1d = get_historical_data(symbol, interval="1d", period="3mo")
+        latest_price = df_1d['Close'].iloc[-1]
+        support, resistance = calculate_support_resistance(df_1d)
+
         final_summary = generate_final_summary(
-        symbol=symbol,
-        signal_1h=signal_1h,
-        signal_4h=signal_4h,
-        signal_1d=signal_1d,
-        clues_1h=clues_1h,
-        clues_4h=clues_4h,
-        clues_1d=clues_1d,
-        sentiment_score=sentiment_score,
-        latest_vix=latest_vix,
-        nifty_trend=nifty_trend,
-        support=support,
-        resistance=resistance,
-        latest_price=latest_price,
-        df_1d=df_1d
-        )
-    
+            symbol=symbol,
+            signal_1h=signal_1h,
+            signal_4h=signal_4h,
+            signal_1d=signal_1d,
+            clues_1h=clues_1h,
+            clues_4h=clues_4h,
+            clues_1d=clues_1d,
+            sentiment_score=sentiment_score,
+            latest_vix=latest_vix,
+            nifty_trend=nifty_trend,
+            support=support,
+            resistance=resistance,
+            latest_price=latest_price,
+            df_1d=df_1d)
+
         st.markdown(final_summary)
 
 def candlestick_summary(df):
