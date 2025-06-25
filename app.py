@@ -8,7 +8,56 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 import streamlit as st
 import feedparser
+import requests
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
+NEWS_API_KEY = "fe8fa3ba495e480dbcc76feabad630b0"  
+analyzer = SentimentIntensityAnalyzer()
+def fetch_sentiment_from_newsapi(query, max_articles=10):
+    url = f"https://newsapi.org/v2/everything?q={query}&language=en&pageSize={max_articles}&apiKey={NEWS_API_KEY}"
+    response = requests.get(url)
+    
+    if response.status_code != 200:
+        return None
+
+    data = response.json()
+    sentiments = []
+    for article in data.get("articles", []):
+        score = analyzer.polarity_scores(article['title'])['compound']
+        sentiments.append(score)
+    
+    if not sentiments:
+        return None
+    
+    avg_sentiment = sum(sentiments) / len(sentiments)
+    return avg_sentiment
+def display_sentiment_summary(symbols):
+    st.markdown("### 🧠 Market Sentiment Summary (NewsAPI + VADER)")
+
+    # Nifty/market-wide sentiment
+    market_sentiment = fetch_sentiment_from_newsapi("Nifty OR Sensex OR Indian Stock Market")
+    if market_sentiment is not None:
+        market_summary = (
+            "📈 Bullish" if market_sentiment > 0.05 else
+            "📉 Bearish" if market_sentiment < -0.05 else
+            "⚖️ Neutral"
+        )
+        st.markdown(f"**🗞️ Nifty Market Sentiment**: `{market_sentiment:+.2f}` → {market_summary}")
+    else:
+        st.warning("Could not fetch market sentiment.")
+
+    # Per-stock sentiment
+    for symbol in symbols:
+        sentiment = fetch_sentiment_from_newsapi(symbol)
+        if sentiment is not None:
+            label = (
+                "📈 Bullish" if sentiment > 0.05 else
+                "📉 Bearish" if sentiment < -0.05 else
+                "⚖️ Neutral"
+            )
+            st.markdown(f"**🧾 {symbol} Sentiment**: `{sentiment:+.2f}` → {label}")
+        else:
+            st.warning(f"No sentiment found for {symbol}")
 def compute_supertrend(df, period=10, multiplier=3):
     hl2 = (df['High'] + df['Low']) / 2
     atr = AverageTrueRange(df['High'], df['Low'], df['Close'], window=period).average_true_range()
@@ -532,43 +581,6 @@ def stock_analyzer(symbols):
         st.markdown(sr_alert)
         
 
-def fetch_market_news_for_query(query, max_items=5):
-    """
-    Fetches Google News RSS headlines based on the search query.
-    """
-    rss_url = f"https://news.google.com/rss/search?q={query.replace(' ', '%20')}&hl=en-IN&gl=IN&ceid=IN:en"
-    feed = feedparser.parse(rss_url)
-    articles = []
-    for entry in feed.entries[:max_items]:
-        articles.append({
-            "title": entry.title,
-            "link": entry.link,
-            "published": entry.published if "published" in entry else "N/A"
-        })
-    return articles
-
-def display_market_news(symbols):
-    st.markdown("### 📰 Market News")
-
-    # General market news
-    st.markdown("#### 🏦 Nifty / Sensex / India Market")
-    general_news = fetch_market_news_for_query("Nifty OR Sensex OR India stock market")
-    if general_news:
-        for art in general_news:
-            st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
-    else:
-        st.info("No major headlines found for Nifty / Sensex.")
-
-    # Per stock news
-    for symbol in symbols:
-        st.markdown(f"#### 📌 News for {symbol}")
-        stock_news = fetch_market_news_for_query(symbol)
-       
-        if stock_news:
-            for art in stock_news:
-                st.markdown(f"- **[{art['title']}]({art['link']})**  \n_Published: {art['published']}_")
-        else:
-            st.info(f"No recent headlines found for {symbol}.")
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
@@ -627,5 +639,5 @@ symbols = st.text_input("Enter stock symbols (comma-separated):", "INFY.NS").spl
 if st.button("Run Analysis"):
     clean_symbols = [s.strip() for s in symbols]
     stock_analyzer(clean_symbols)
-    display_market_news(clean_symbols)
-   
+    display_sentiment_summary(clean_symbols) 
+
