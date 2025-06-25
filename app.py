@@ -474,14 +474,7 @@ def stock_analyzer(symbols):
                 positional_msg = "✅ Positional Bullish Bias (Price above VWAP)"
             else:
                 positional_msg = "🔻 Positional Bearish Bias (Price below VWAP)"
-            patterns = detect_candlestick_patterns_with_volume(df)
-            if patterns:
-                st.subheader("🕯️ Candlestick Patterns Detected")
-                for pname, pdesc in patterns.items():
-                    st.markdown(f"🔹 **{pname}:** {pdesc}")
-            else:
-                st.info("No major candlestick pattern detected on the latest candle.")
-
+            
             clues.append(swing_msg)
             clues.append(positional_msg)
 
@@ -550,7 +543,13 @@ def stock_analyzer(symbols):
             nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
         
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)
-        
+        patterns = detect_candlestick_patterns_with_volume(df)
+            if patterns:
+                st.subheader("🕯️ Candlestick Patterns Detected")
+                for pname, pdesc in patterns.items():
+                    st.markdown(f"🔹 **{pname}:** {pdesc}")
+            else:
+                st.info("No major candlestick pattern detected on the latest candle.")
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
         strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy)
