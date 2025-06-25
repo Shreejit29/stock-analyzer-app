@@ -663,11 +663,12 @@ def stock_analyzer(symbols):
         st.markdown(candlestick_summary(df_4h))
         st.subheader("📊 Candlestick Patterns (1D)")
         st.markdown(candlestick_summary(df_1d))
+        latest_price = df_1d['Close'].iloc[-1]
+        vix_for_strategy = latest_vix if latest_vix is not None else 0
+        nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
             nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
-        
-        warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)
-        
+        warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
         strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy)
