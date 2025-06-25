@@ -634,16 +634,7 @@ def stock_analyzer(symbols):
         sentiment_score=sentiment_score, 
         vix=latest_vix,
         nifty_trend=nifty_trend)   
-        st.markdown(f"""
-        **Intraday Signal (1H):** `{signal_1h}`  
-        **Swing Signal (4H):** `{signal_4h}`  
-        **Positional Signal (1D):** `{signal_1d}`  
-        **Volume Confirmation:** `{volume_strength}`  
-        **Sentiment Score:** `{sentiment_score:.2f}`  
-        **VIX Level:** `{latest_vix:.2f if latest_vix else 'N/A'}`  
-        **Market Trend (Nifty):** `{nifty_trend}`  
-        **🔐 Confidence Score:** `{confidence_score}/100`
-        """)
+        
 
 
 def candlestick_summary(df):
@@ -808,7 +799,16 @@ def generate_final_summary(symbol, signal_1h, signal_4h, signal_1d,
     ]
 
     return "\n".join(summary)
-
+st.markdown(f"""
+        **Intraday Signal (1H):** `{signal_1h}`  
+        **Swing Signal (4H):** `{signal_4h}`  
+        **Positional Signal (1D):** `{signal_1d}`  
+        **Volume Confirmation:** `{volume_strength}`  
+        **Sentiment Score:** `{sentiment_score:.2f}`  
+        **VIX Level:** `{latest_vix:.2f if latest_vix else 'N/A'}`  
+        **Market Trend (Nifty):** `{nifty_trend}`  
+        **🔐 Confidence Score:** `{confidence_score}/100`
+        """)
     
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
