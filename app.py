@@ -560,14 +560,7 @@ def stock_analyzer(symbols):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
        
-
-        confidence_score = calculate_confidence(
-            signal_1h=signal_1h,
-            signal_4h=signal_4h,
-            signal_1d=signal_1d,
-            sentiment_score=sentiment_score, 
-            vix=latest_vix,
-            nifty_trend=nifty_trend)         
+  
         # === Compute weighted final signal ===
         score = 0
         if 'Bullish' in signal_1d:
@@ -818,6 +811,13 @@ def generate_final_summary(symbol, signal_1h, signal_4h, signal_1d,
 
     return "\n".join(summary)
 
+confidence_score = calculate_confidence(
+signal_1h=signal_1h,
+signal_4h=signal_4h,
+signal_1d=signal_1d,
+sentiment_score=sentiment_score, 
+vix=latest_vix,
+nifty_trend=nifty_trend)       
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
 
