@@ -167,69 +167,82 @@ def stock_analyzer(symbols):
         range_ = df['High'] - df['Low']
         upper_shadow = df['High'] - df[['Close', 'Open']].max(axis=1)
         lower_shadow = df[['Close', 'Open']].min(axis=1) - df['Low']
+        avg_volume = df['Volume'].rolling(window=5).mean()
+        high_volume = df['Volume'] > avg_volume
     
         df['Doji'] = (body <= 0.1 * range_)
         df['Hammer'] = (
             (body <= 0.3 * range_) &
             (lower_shadow >= 2 * body) &
-            (upper_shadow <= 0.1 * range_)
+            (upper_shadow <= 0.1 * range_) &
+            high_volume
         )
         df['Inverted_Hammer'] = (
             (body <= 0.3 * range_) &
             (upper_shadow >= 2 * body) &
-            (lower_shadow <= 0.1 * range_)
+            (lower_shadow <= 0.1 * range_) &
+            high_volume
         )
         df['Hanging_Man'] = df['Hammer'] & (df['Close'] < df['Open'])
         df['Shooting_Star'] = (
             (body <= 0.3 * range_) &
             (upper_shadow >= 2 * body) &
-            (lower_shadow <= 0.1 * range_)
+            (lower_shadow <= 0.1 * range_) &
+            high_volume
         )
         df['Bullish_Engulfing'] = (
             (df['Close'] > df['Open']) &
             (df['Close'].shift(1) < df['Open'].shift(1)) &
             (df['Open'] <= df['Close'].shift(1)) &
-            (df['Close'] >= df['Open'].shift(1))
+            (df['Close'] >= df['Open'].shift(1)) &
+            high_volume
         )
         df['Bearish_Engulfing'] = (
             (df['Close'] < df['Open']) &
             (df['Close'].shift(1) > df['Open'].shift(1)) &
             (df['Open'] >= df['Close'].shift(1)) &
-            (df['Close'] <= df['Open'].shift(1))
+            (df['Close'] <= df['Open'].shift(1)) &
+            high_volume
         )
         df['Piercing_Line'] = (
             (df['Close'].shift(1) < df['Open'].shift(1)) &
             (df['Close'] > df['Open']) &
             (df['Close'] > (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
-            (df['Open'] < df['Close'].shift(1))
+            (df['Open'] < df['Close'].shift(1)) &
+            high_volume
         )
         df['Dark_Cloud_Cover'] = (
             (df['Close'].shift(1) > df['Open'].shift(1)) &
             (df['Close'] < df['Open']) &
             (df['Close'] < (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
-            (df['Open'] > df['Close'].shift(1))
+            (df['Open'] > df['Close'].shift(1)) &
+            high_volume
         )
         df['Three_White_Soldiers'] = (
             (df['Close'] > df['Open']) &
             (df['Close'].shift(1) > df['Open'].shift(1)) &
-            (df['Close'].shift(2) > df['Open'].shift(2))
+            (df['Close'].shift(2) > df['Open'].shift(2)) &
+            high_volume
         )
         df['Three_Black_Crows'] = (
             (df['Close'] < df['Open']) &
             (df['Close'].shift(1) < df['Open'].shift(1)) &
-            (df['Close'].shift(2) < df['Open'].shift(2))
+            (df['Close'].shift(2) < df['Open'].shift(2)) &
+            high_volume
         )
         df['Morning_Star'] = (
             (df['Close'].shift(2) < df['Open'].shift(2)) &
             (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
             (df['Close'] > df['Open']) &
-            (df['Close'] > (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
+            (df['Close'] > (df['Open'].shift(2) + df['Close'].shift(2)) / 2) &
+            high_volume
         )
         df['Evening_Star'] = (
             (df['Close'].shift(2) > df['Open'].shift(2)) &
             (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
             (df['Close'] < df['Open']) &
-            (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
+            (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2) &
+            high_volume
         )
         return df
 
@@ -444,8 +457,6 @@ def stock_analyzer(symbols):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
         
-
-
         # === Compute weighted final signal ===
         score = 0
         if 'Bullish' in signal_1d:
@@ -561,35 +572,51 @@ def display_market_news(symbols):
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
+
     if recent['Doji']:
         msgs.append("⚠️ Doji: Market indecision or reversal risk.")
+
     if recent['Hammer']:
-        msgs.append("🔨 Hammer: Potential bullish reversal.")
+        msgs.append("🔨 Hammer (volume confirmed): Potential bullish reversal.")
+
     if recent['Inverted_Hammer']:
-        msgs.append("🔄 Inverted Hammer: Possible bullish reversal.")
+        msgs.append("🔄 Inverted Hammer (volume confirmed): Possible bullish reversal.")
+
     if recent['Hanging_Man']:
-        msgs.append("📉 Hanging Man: Bearish reversal risk at top.")
+        msgs.append("📉 Hanging Man (volume confirmed): Bearish reversal risk at top.")
+
     if recent['Shooting_Star']:
-        msgs.append("🌠 Shooting Star: Potential bearish reversal.")
+        msgs.append("🌠 Shooting Star (volume confirmed): Potential bearish reversal.")
+
     if recent['Bullish_Engulfing']:
-        msgs.append("🚀 Bullish Engulfing: Strong bullish signal.")
+        msgs.append("🚀 Bullish Engulfing (volume confirmed): Strong bullish signal.")
+
     if recent['Bearish_Engulfing']:
-        msgs.append("⚠️ Bearish Engulfing: Strong bearish signal.")
+        msgs.append("⚠️ Bearish Engulfing (volume confirmed): Strong bearish signal.")
+
     if recent['Piercing_Line']:
-        msgs.append("💡 Piercing Line: Bullish reversal hint.")
+        msgs.append("💡 Piercing Line (volume confirmed): Bullish reversal hint.")
+
     if recent['Dark_Cloud_Cover']:
-        msgs.append("🌩️ Dark Cloud Cover: Bearish reversal hint.")
+        msgs.append("🌩️ Dark Cloud Cover (volume confirmed): Bearish reversal hint.")
+
     if recent['Three_White_Soldiers']:
-        msgs.append("🏹 Three White Soldiers: Strong bullish momentum.")
+        msgs.append("🏹 Three White Soldiers (volume confirmed): Strong bullish momentum.")
+
     if recent['Three_Black_Crows']:
-        msgs.append("🐦 Three Black Crows: Strong bearish momentum.")
+        msgs.append("🐦 Three Black Crows (volume confirmed): Strong bearish momentum.")
+
     if recent['Morning_Star']:
-        msgs.append("🌅 Morning Star: Bullish 3-bar reversal.")
+        msgs.append("🌅 Morning Star (volume confirmed): Bullish 3-bar reversal.")
+
     if recent['Evening_Star']:
-        msgs.append("🌇 Evening Star: Bearish 3-bar reversal.")
+        msgs.append("🌇 Evening Star (volume confirmed): Bearish 3-bar reversal.")
+
     if not msgs:
         msgs.append("No strong candlestick pattern in last bar.")
+
     return "\n".join(msgs)
+
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
 
