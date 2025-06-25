@@ -481,13 +481,7 @@ def stock_analyzer(symbols):
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
         df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
-        df_1h = detect_candlestick_patterns(df_1h)
-        df_4h = detect_candlestick_patterns(df_4h)
-        df_1d = detect_candlestick_patterns(df_1d)
-        candlestick_patterns_1h = get_active_candlestick_patterns(df_1h)
-        candlestick_patterns_4h = get_active_candlestick_patterns(df_4h)
-        candlestick_patterns_1d = get_active_candlestick_patterns(df_1d)
-
+        
         sentiment_score = fetch_sentiment_from_newsapi(symbol)
         if sentiment_score is None:
             sentiment_score = 0.0  # default neutral
@@ -605,7 +599,13 @@ def stock_analyzer(symbols):
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
-       
+        df_1h = detect_candlestick_patterns(df_1h)
+        df_4h = detect_candlestick_patterns(df_4h)
+        df_1d = detect_candlestick_patterns(df_1d)
+        candlestick_patterns_1h = get_active_candlestick_patterns(df_1h)
+        candlestick_patterns_4h = get_active_candlestick_patterns(df_4h)
+        candlestick_patterns_1d = get_active_candlestick_patterns(df_1d)
+
   
         # === Compute weighted final signal ===
         score = 0
