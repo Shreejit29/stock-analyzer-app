@@ -432,6 +432,18 @@ def stock_analyzer(symbols):
             return f"⏸️ `{symbol}` → No strong trade setup\n\n{candle_summary}\n{clue_summary}\n{sr_alert}"
     
         return f"✅ `{symbol}` → Best Trade Type: {trade_type}\n\n{candle_summary}\n{clue_summary}\n{sr_alert}"
+    def get_active_candlestick_patterns(df):
+        recent = df.iloc[-1]
+        patterns = []
+        for col in df.columns:
+            if col in [
+                'Doji', 'Hammer', 'Inverted_Hammer', 'Hanging_Man', 'Shooting_Star',
+                'Bullish_Engulfing', 'Bearish_Engulfing', 'Piercing_Line',
+                'Dark_Cloud_Cover', 'Three_White_Soldiers', 'Three_Black_Crows',
+                'Morning_Star', 'Evening_Star'
+            ] and recent[col] == True:
+                patterns.append(col.replace("_", " "))
+        return patterns
 
     def clean_yf_data(df):
         if df.empty:
@@ -469,6 +481,13 @@ def stock_analyzer(symbols):
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
         df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
+        df_1h = detect_candlestick_patterns(df_1h)
+        df_4h = detect_candlestick_patterns(df_4h)
+        df_1d = detect_candlestick_patterns(df_1d)
+        candlestick_patterns_1h = get_active_candlestick_patterns(df_1h)
+        candlestick_patterns_4h = get_active_candlestick_patterns(df_4h)
+        candlestick_patterns_1d = get_active_candlestick_patterns(df_1d)
+
         sentiment_score = fetch_sentiment_from_newsapi(symbol)
         if sentiment_score is None:
             sentiment_score = 0.0  # default neutral
