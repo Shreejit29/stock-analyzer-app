@@ -344,13 +344,7 @@ def stock_analyzer(symbols):
             score += 10
         elif sentiment_score < -0.3:
             score -= 10
-    
-        # Volume strength
-        if volume_strength == "High":
-            score += 10
-        elif volume_strength == "Low":
-            score -= 10
-    
+           
         # VIX penalty
         if vix:
             if vix > 22:
