@@ -161,77 +161,116 @@ def stock_analyzer(symbols):
             )
         
         return suggestion
-    def detect_candlestick_patterns(df):
-        df = df.copy()
-        body = abs(df['Close'] - df['Open'])
-        range_ = df['High'] - df['Low']
-        upper_shadow = df['High'] - df[['Close', 'Open']].max(axis=1)
-        lower_shadow = df[['Close', 'Open']].min(axis=1) - df['Low']
-    
-        df['Doji'] = (body <= 0.1 * range_)
-        df['Hammer'] = (
-            (body <= 0.3 * range_) &
-            (lower_shadow >= 2 * body) &
-            (upper_shadow <= 0.1 * range_)
-        )
-        df['Inverted_Hammer'] = (
-            (body <= 0.3 * range_) &
-            (upper_shadow >= 2 * body) &
-            (lower_shadow <= 0.1 * range_)
-        )
-        df['Hanging_Man'] = df['Hammer'] & (df['Close'] < df['Open'])
-        df['Shooting_Star'] = (
-            (body <= 0.3 * range_) &
-            (upper_shadow >= 2 * body) &
-            (lower_shadow <= 0.1 * range_)
-        )
-        df['Bullish_Engulfing'] = (
-            (df['Close'] > df['Open']) &
-            (df['Close'].shift(1) < df['Open'].shift(1)) &
-            (df['Open'] <= df['Close'].shift(1)) &
-            (df['Close'] >= df['Open'].shift(1))
-        )
-        df['Bearish_Engulfing'] = (
-            (df['Close'] < df['Open']) &
-            (df['Close'].shift(1) > df['Open'].shift(1)) &
-            (df['Open'] >= df['Close'].shift(1)) &
-            (df['Close'] <= df['Open'].shift(1))
-        )
-        df['Piercing_Line'] = (
-            (df['Close'].shift(1) < df['Open'].shift(1)) &
-            (df['Close'] > df['Open']) &
-            (df['Close'] > (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
-            (df['Open'] < df['Close'].shift(1))
-        )
-        df['Dark_Cloud_Cover'] = (
-            (df['Close'].shift(1) > df['Open'].shift(1)) &
-            (df['Close'] < df['Open']) &
-            (df['Close'] < (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
-            (df['Open'] > df['Close'].shift(1))
-        )
-        df['Three_White_Soldiers'] = (
-            (df['Close'] > df['Open']) &
-            (df['Close'].shift(1) > df['Open'].shift(1)) &
-            (df['Close'].shift(2) > df['Open'].shift(2))
-        )
-        df['Three_Black_Crows'] = (
-            (df['Close'] < df['Open']) &
-            (df['Close'].shift(1) < df['Open'].shift(1)) &
-            (df['Close'].shift(2) < df['Open'].shift(2))
-        )
-        df['Morning_Star'] = (
-            (df['Close'].shift(2) < df['Open'].shift(2)) &
-            (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
-            (df['Close'] > df['Open']) &
-            (df['Close'] > (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
-        )
-        df['Evening_Star'] = (
-            (df['Close'].shift(2) > df['Open'].shift(2)) &
-            (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
-            (df['Close'] < df['Open']) &
-            (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2)
-        )
-        return df
+    def detect_candlestick_patterns_with_volume(df):
+    """
+    Detect common candlestick patterns with volume confirmation.
+    """
+    patterns = {}
+    avg_vol = df['Volume'].rolling(5).mean()
+
+    # --- Bullish Engulfing ---
+    cond = (
+        (df['Close'] > df['Open']) &
+        (df['Open'].shift(1) > df['Close'].shift(1)) &
+        (df['Close'] > df['Open'].shift(1)) &
+        (df['Open'] < df['Close'].shift(1)) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Bullish Engulfing'] = "✅ Strong bullish reversal with high volume."
+
+    # --- Bearish Engulfing ---
+    cond = (
+        (df['Close'] < df['Open']) &
+        (df['Open'].shift(1) < df['Close'].shift(1)) &
+        (df['Close'] < df['Open'].shift(1)) &
+        (df['Open'] > df['Close'].shift(1)) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Bearish Engulfing'] = "⚠️ Strong bearish reversal with high volume."
+
+    # --- Hammer ---
+    cond = (
+        ((df['High'] - df['Low']) > 3 * (df['Open'] - df['Close']).abs()) &
+        ((df['Close'] - df['Low']) / (0.001 + (df['High'] - df['Low'])) > 0.6) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Hammer'] = "✅ Bullish hammer — potential bottom reversal with volume support."
+
+    # --- Inverted Hammer ---
+    cond = (
+        ((df['High'] - df['Low']) > 3 * (df['Open'] - df['Close']).abs()) &
+        ((df['High'] - df['Close']) / (0.001 + (df['High'] - df['Low'])) > 0.6) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Inverted Hammer'] = "⚠️ Inverted hammer — potential reversal at low."
+
+    # --- Shooting Star ---
+    cond = (
+        ((df['High'] - df['Low']) > 3 * (df['Open'] - df['Close']).abs()) &
+        ((df['High'] - df['Close']) / (0.001 + (df['High'] - df['Low'])) > 0.6) &
+        (df['Open'] > df['Close']) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Shooting Star'] = "⚠️ Shooting star — bearish potential at top."
+
+    # --- Doji ---
+    cond = (
+        ((df['Close'] - df['Open']).abs() < 0.1 * (df['High'] - df['Low'])) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Doji'] = "⚖️ Doji with high volume — market indecision at key zone."
+
+    # --- Morning Star ---
+    cond = (
+        (df['Close'].shift(2) < df['Open'].shift(2)) &
+        (df['Close'].shift(1) < df['Open'].shift(1)) &
+        (df['Close'] > df['Open']) &
+        (df['Close'] > (df['Open'].shift(2) + df['Close'].shift(2)) / 2) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Morning Star'] = "✅ Morning star — bullish reversal with volume confirmation."
+
+    # --- Evening Star ---
+    cond = (
+        (df['Close'].shift(2) > df['Open'].shift(2)) &
+        (df['Close'].shift(1) > df['Open'].shift(1)) &
+        (df['Close'] < df['Open']) &
+        (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Evening Star'] = "⚠️ Evening star — bearish reversal with volume confirmation."
+
+    # --- Piercing Line ---
+    cond = (
+        (df['Open'] < df['Close']) &
+        (df['Close'].shift(1) < df['Open'].shift(1)) &
+        (df['Open'] < df['Close'].shift(1)) &
+        (df['Close'] > (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Piercing Line'] = "✅ Piercing line — bullish reversal with volume support."
+
+    # --- Dark Cloud Cover ---
+    cond = (
+        (df['Open'] > df['Close']) &
+        (df['Close'].shift(1) > df['Open'].shift(1)) &
+        (df['Open'] > df['Close'].shift(1)) &
+        (df['Close'] < (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
+        (df['Volume'] > avg_vol)
+    )
+    if cond.iloc[-1]:
+        patterns['Dark Cloud Cover'] = "⚠️ Dark cloud cover — bearish reversal with volume confirmation."
+
+    return patterns
 
     def compute_indicators(df):
         close = df['Close']
@@ -435,7 +474,14 @@ def stock_analyzer(symbols):
                 positional_msg = "✅ Positional Bullish Bias (Price above VWAP)"
             else:
                 positional_msg = "🔻 Positional Bearish Bias (Price below VWAP)"
-        
+            patterns = detect_candlestick_patterns_with_volume(df)
+            if patterns:
+                st.subheader("🕯️ Candlestick Patterns Detected")
+                for pname, pdesc in patterns.items():
+                    st.markdown(f"🔹 **{pname}:** {pdesc}")
+            else:
+                st.info("No major candlestick pattern detected on the latest candle.")
+
             clues.append(swing_msg)
             clues.append(positional_msg)
 
