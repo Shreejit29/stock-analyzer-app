@@ -635,8 +635,6 @@ def stock_analyzer(symbols):
         vix=latest_vix,
         nifty_trend=nifty_trend)   
         
-
-
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
@@ -799,7 +797,7 @@ def generate_final_summary(symbol, signal_1h, signal_4h, signal_1d,
     ]
 
     return "\n".join(summary)
-st.markdown(f"""
+    st.markdown(f"""
         **Intraday Signal (1H):** `{signal_1h}`  
         **Swing Signal (4H):** `{signal_4h}`  
         **Positional Signal (1D):** `{signal_1d}`  
