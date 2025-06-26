@@ -162,55 +162,74 @@ def stock_analyzer(symbols):
             return "✅ No immediate support/resistance barrier risk."
         else:
             return "\n".join(alerts)
-    def suggest_option_strategy(final_signal, latest_price, vix_level):
-        """
-        Suggest a suitable option strategy.
-        """
-        strike_step = 10  # You could adjust this based on the stock
+    def suggest_option_strategy(final_signal, latest_price, vix_level, confidence_pct):
+        strike_step = 10
         atm = round(latest_price / strike_step) * strike_step
         spread_width = 20
         vix_display = f"{vix_level:.2f}" if vix_level is not None else "N/A"
-        
+    
         suggestion = ""
-        
-        if 'Ultra Strong Bullish' in final_signal or 'Strong Bullish' in final_signal:
-            suggestion = (
-                f"💡 **Bull Call Spread**\n"
-                f"👉 Buy {atm} CE, Sell {atm + spread_width} CE\n"
-                f"👉 Reason: Strong bullish signal with technical alignment\n"
-                f"👉 Target: Swing move 2-5 days\n"
-                f"👉 Risk: Limited risk, defined reward\n"
-            )
-        elif 'Ultra Strong Bearish' in final_signal or 'Strong Bearish' in final_signal:
-            suggestion = (
-                f"💡 **Bear Put Spread**\n"
-                f"👉 Buy {atm} PE, Sell {atm - spread_width} PE\n"
-                f"👉 Reason: Strong bearish signal detected\n"
-                f"👉 Target: Swing move 2-5 days\n"
-                f"👉 Risk: Limited risk, cost-effective bearish play\n"
-            )
-        elif 'Mixed' in final_signal or 'Neutral' in final_signal:
-            if vix_level is not None and vix_level >= 20:
+    
+        strong_conf = confidence_pct >= 70
+        moderate_conf = 50 <= confidence_pct < 70
+        low_conf = confidence_pct < 50
+    
+        if 'Bullish' in final_signal:
+            if strong_conf:
                 suggestion = (
-                    f"💡 **Iron Condor / Short Strangle**\n"
-                    f"👉 Sell OTM Call & Put, e.g., Sell {atm + 50} CE, Sell {atm - 50} PE\n"
-                    f"👉 Reason: Market indecisive + high volatility (VIX {vix_display})\n"
-                    f"👉 Benefit: Profit from time decay + volatility crush\n"
+                    f"💡 **Bull Call Spread** (High Confidence)\n"
+                    f"👉 Buy {atm} CE, Sell {atm + spread_width} CE\n"
+                    f"🎯 Target: Swing move 2–5 days\n"
+                    f"🛡️ Risk: Defined, Good Reward Ratio\n"
+                    f"📈 Confidence: {confidence_pct}%"
+                )
+            elif moderate_conf:
+                suggestion = (
+                    f"💡 **Moderate Bull Call Spread** (Medium Confidence)\n"
+                    f"👉 Buy {atm + 10} CE, Sell {atm + 30} CE\n"
+                    f"📈 Confidence: {confidence_pct}%, keep SL tight"
                 )
             else:
                 suggestion = (
-                    f"💡 **Wait / Small Range Bound Trade**\n"
-                    f"👉 Reason: Neutral signal + low/moderate volatility (VIX {vix_display})\n"
-                    f"👉 Action: Wait for clearer setup\n"
+                    f"⚠️ Weak Bullish Confidence ({confidence_pct}%)\n"
+                    f"👉 Suggest: Wait for confirmation or intraday scalp only\n"
                 )
-        else:
-            suggestion = (
-                f"💡 **No clear edge**\n"
-                f"👉 Reason: Signal unclear or conflicting signals\n"
-                f"👉 Action: Observe or look for better setups\n"
-            )
-        
+    
+        elif 'Bearish' in final_signal:
+            if strong_conf:
+                suggestion = (
+                    f"💡 **Bear Put Spread** (High Confidence)\n"
+                    f"👉 Buy {atm} PE, Sell {atm - spread_width} PE\n"
+                    f"📉 Confidence: {confidence_pct}%, Ideal for swing short\n"
+                )
+            elif moderate_conf:
+                suggestion = (
+                    f"💡 **Moderate Bear Spread** (Medium Confidence)\n"
+                    f"👉 Buy {atm - 10} PE, Sell {atm - 30} PE\n"
+                    f"⚠️ Confidence: {confidence_pct}%, use SL"
+                )
+            else:
+                suggestion = (
+                    f"⚠️ Weak Bearish Confidence ({confidence_pct}%)\n"
+                    f"👉 Suggest: Avoid fresh short until breakdown confirmation\n"
+                )
+    
+        elif 'Neutral' in final_signal:
+            if vix_level and vix_level >= 20 and strong_conf:
+                suggestion = (
+                    f"💡 **Iron Condor** (High Volatility & Confidence)\n"
+                    f"👉 Sell {atm + 50} CE & {atm - 50} PE\n"
+                    f"📊 Benefit: Theta decay + volatility crush\n"
+                    f"📈 Confidence: {confidence_pct}%"
+                )
+            else:
+                suggestion = (
+                    f"🔍 Neutral bias with Confidence {confidence_pct}%\n"
+                    f"👉 Suggest: Wait for breakout or range strategy\n"
+                )
+    
         return suggestion
+
     def detect_candlestick_patterns(df):
         df = df.copy()
         body = abs(df['Close'] - df['Open'])
@@ -587,6 +606,7 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
+        strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy, confidence_percent)
         strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy)
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
