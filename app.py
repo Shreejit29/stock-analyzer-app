@@ -349,9 +349,7 @@ def stock_analyzer(symbols):
         df = compute_stoch_rsi(df)
         df = compute_vwap(df)
         df = detect_candlestick_patterns(df)
-        candle_summary_1d = candlestick_summary(df_1d)
-        candle_summary_4h = candlestick_summary(df_4h)
-        candle_summary_1h = candlestick_summary(df_1h)
+ 
         return df
     
     def detect_trend_reversal(df):
@@ -427,7 +425,12 @@ def stock_analyzer(symbols):
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
         df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
-
+        df_1d = detect_candlestick_patterns(df_1d)
+        df_4h = detect_candlestick_patterns(df_4h)
+        df_1h = detect_candlestick_patterns(df_1h)
+        candle_summary_1d = candlestick_summary(df_1d)
+        candle_summary_4h = candlestick_summary(df_4h)
+        candle_summary_1h = candlestick_summary(df_1h)
         sentiment_score = fetch_sentiment_from_newsapi(symbol)
         if sentiment_score is None:
             sentiment_score = 0.0  # default neutral
