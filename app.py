@@ -10,38 +10,6 @@ import streamlit as st
 import feedparser
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-def suggest_trade_type(signal_1h, signal_4h, signal_1d, vix, confidence, candle_summary, latest_price, support, resistance):
-    """
-    Suggest Intraday / Swing / Positional trade based on signal strength, candlestick, support/resistance, and VIX.
-    """
-    candle_strength = any(kw in candle_summary for kw in [
-        "Bullish Engulfing", "Three White Soldiers", "Morning Star", "Hammer"
-    ])
-    candle_bear = any(kw in candle_summary for kw in [
-        "Bearish Engulfing", "Three Black Crows", "Evening Star", "Shooting Star"
-    ])
-
-    near_support = 0 < (latest_price - support) / latest_price * 100 < 2
-    near_resistance = 0 < (resistance - latest_price) / latest_price * 100 < 2
-    breakout = latest_price > resistance
-    breakdown = latest_price < support
-
-    if confidence >= 80 and 'Bullish' in signal_1d and candle_strength and (breakout or near_support):
-        return "📈 **Positional Buy** → Strong daily trend + bullish candle + near support or breakout"
-    elif confidence >= 80 and 'Bearish' in signal_1d and candle_bear and (breakdown or near_resistance):
-        return "📉 **Positional Sell** → Bearish daily signal + near resistance or breakdown"
-
-    if confidence >= 60 and 'Bullish' in signal_4h and (breakout or near_support):
-        return "🚀 **Swing Long** → Bullish 4H signal near support or breaking resistance"
-    elif confidence >= 60 and 'Bearish' in signal_4h and (breakdown or near_resistance):
-        return "🔻 **Swing Short** → Bearish setup at key zone"
-
-    if confidence >= 40 and 'Bullish' in signal_1h and vix < 20:
-        return "💥 **Intraday Buy** → Low volatility + RSI/OBV support"
-    elif confidence >= 40 and 'Bearish' in signal_1h and vix < 20:
-        return "⚡ **Intraday Short** → Intraday breakdown + low VIX"
-
-    return "⚖️ **No strong trade setup** — Wait for clearer confirmation"
 
 NEWS_API_KEY = "fe8fa3ba495e480dbcc76feabad630b0"  
 analyzer = SentimentIntensityAnalyzer()
@@ -349,7 +317,6 @@ def stock_analyzer(symbols):
         df = compute_stoch_rsi(df)
         df = compute_vwap(df)
         df = detect_candlestick_patterns(df)
- 
         return df
     
     def detect_trend_reversal(df):
@@ -424,19 +391,8 @@ def stock_analyzer(symbols):
 
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
-        if df_1d is None or df_1d.empty:
-            st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
-            continue
-        df_1d = compute_indicators(df_1d)
-        clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
-        latest_price = df_1d['Close'].iloc[-1]
         df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
-        df_1d = detect_candlestick_patterns(df_1d)
-        df_4h = detect_candlestick_patterns(df_4h)
-        df_1h = detect_candlestick_patterns(df_1h)
-        candle_summary_1d = candlestick_summary(df_1d)
-        candle_summary_4h = candlestick_summary(df_4h)
-        candle_summary_1h = candlestick_summary(df_1h)
+        
         sentiment_score = fetch_sentiment_from_newsapi(symbol)
         if sentiment_score is None:
             sentiment_score = 0.0  # default neutral
@@ -591,11 +547,7 @@ def stock_analyzer(symbols):
         else:
             bias = '⚖️ Mixed / Neutral'
         final = f"{bias} (Confidence: {confidence_percent}%)"
-        trade_suggestion = suggest_trade_type(
-            signal_1h, signal_4h, signal_1d,
-            latest_vix, confidence_percent,
-            candle_summary_1d,  
-            latest_price, support_1d, resistance_1d)
+        
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
@@ -610,7 +562,7 @@ def stock_analyzer(symbols):
         for c in clues_1d:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1D Signal: {signal_1d}")
-        candle_summary_1d = candlestick_summary(df_1d)
+
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
         st.success(f"Final Combined Signal: {final}")
         st.markdown(f"**🧮 Clue Breakdown**: Bullish clues = {bull_clues}, Bearish clues = {bear_clues}")
@@ -621,17 +573,12 @@ def stock_analyzer(symbols):
             st.warning(f"⚠️ {final} but Nifty down — caution advised!")
         elif 'Bearish' in final and nifty_trend == 'up':
             st.warning(f"⚠️ {final} but Nifty up — caution advised!")
-
-        st.subheader("📊 Candlestick Patterns (1D)")
-        st.markdown(candle_summary_1d)
-        
-        st.subheader("📊 Candlestick Patterns (4H)")
-        st.markdown(candle_summary_4h)
-        
         st.subheader("📊 Candlestick Patterns (1H)")
-        st.markdown(candle_summary_1h)
-        
-        
+        st.markdown(candlestick_summary(df_1h))
+        st.subheader("📊 Candlestick Patterns (4H)")
+        st.markdown(candlestick_summary(df_4h))
+        st.subheader("📊 Candlestick Patterns (1D)")
+        st.markdown(candlestick_summary(df_1d))
         latest_price = df_1d['Close'].iloc[-1]
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
@@ -647,15 +594,6 @@ def stock_analyzer(symbols):
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.markdown(sr_alert)
 
-        trade_suggestion = suggest_trade_type(
-            signal_1h, signal_4h, signal_1d,
-            latest_vix if latest_vix is not None else 0,
-            int(score * 100),  # confidence from signal
-            candle_summary_1d,
-            latest_price, support_1d, resistance_1d
-        )
-        st.subheader("📌 Trade Type Suggestion")
-        st.markdown(trade_suggestion)
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
