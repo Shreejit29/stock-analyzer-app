@@ -627,8 +627,8 @@ def stock_analyzer(symbols):
         bias = 'Bullish' if score > 0 else 'Bearish' if score < 0 else 'Neutral'
         confidence = round(abs(score) * 100)
         
-        resistance_gap_pct = (resistance_sr - latest_price) / latest_price * 100
-        support_gap_pct = (latest_price - support_sr) / latest_price * 100
+        resistance_gap_pct = (sr_resistance - latest_price) / latest_price * 100
+        support_gap_pct = (latest_price - sr_support) / latest_price * 100
         
         if 0 <= resistance_gap_pct <= 1.5:
             confidence -= 10  # Near resistance — risky
