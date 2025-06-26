@@ -146,28 +146,24 @@ def stock_analyzer(symbols):
         support = close_series.rolling(window).min().iloc[-1]
         resistance = close_series.rolling(window).max().iloc[-1]
         return support, resistance
-
     def support_resistance_alert(latest_price, support, resistance):
-        """
-        Generate alert if price is too close to support or resistance.
-        """
         support_gap_pct = (latest_price - support) / latest_price * 100
         resistance_gap_pct = (resistance - latest_price) / latest_price * 100
     
         alerts = []
     
-        if support_gap_pct >= 0 and support_gap_pct < 2:
+        if 0 <= support_gap_pct < 2:
             alerts.append(f"⚠️ Price is within {support_gap_pct:.2f}% of support — risk of breakdown if breached.")
     
-        if resistance_gap_pct >= 0 and resistance_gap_pct < 2:
+        if 0 <= resistance_gap_pct < 2:
             alerts.append(f"⚠️ Price is within {resistance_gap_pct:.2f}% of resistance — possible reversal zone.")
     
         if not alerts:
-            return "✅ No immediate support/resistance barrier risk.", support_gap_pct, resistance_gap_pct
+            return "✅ No immediate support/resistance barrier risk."
         else:
-            return "\n".join(alerts), support_gap_pct, resistance_gap_pct
+            return "\n".join(alerts)  # return just a string
 
-   
+    
     def suggest_option_strategy(final_signal, latest_price, vix_level, confidence_percent, support, resistance):
         strike_step = 10
         atm = round(latest_price / strike_step) * strike_step
