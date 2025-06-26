@@ -637,9 +637,9 @@ def stock_analyzer(symbols):
         
         # === OBV Trend Confirmation (still from 1D)
         obv_trend = df_1d['OBV'].iloc[-1] - df_1d['OBV'].iloc[-5]
-        if obv_trend > 0 and latest_price > resistance_sr:
+        if obv_trend > 0 and latest_price > sr_resistance:
             confidence += 10  # Breakout with volume
-        elif obv_trend < 0 and latest_price >= resistance_sr:
+        elif obv_trend < 0 and latest_price >= sr_resistance:
             confidence -= 10  # Price up but OBV falling
         
         # Clamp confidence
