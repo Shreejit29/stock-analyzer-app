@@ -595,11 +595,10 @@ def stock_analyzer(symbols):
             score -= 0.3
         if 'Bearish' in signal_1h:
             score -= 0.1
-        
-        # Determine bias and final signal
+   
         confidence = round(abs(score) * 100)
         bias = 'Bullish' if score > 0 else 'Bearish' if score < 0 else 'Neutral'
-        # === Adjust confidence using support/resistance proximity ===
+        
         resistance_gap_pct = (resistance_1d - latest_price) / latest_price * 100
         support_gap_pct = (latest_price - support_1d) / latest_price * 100
         
