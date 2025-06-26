@@ -579,16 +579,11 @@ def stock_analyzer(symbols):
         else:
             bias = '⚖️ Mixed / Neutral'
         final = f"{bias} (Confidence: {confidence_percent}%)"
-        trade_suggestion = suggest_trade_type(
-            signal_1h,
-            signal_4h,
-            signal_1d,
-            latest_vix,
-            confidence_percent,
-            candle_1d,
-            latest_price,
-            support_1d,
-            resistance_1d
+       trade_suggestion = suggest_trade_type(
+            signal_1h, signal_4h, signal_1d,
+            latest_vix, confidence_percent,
+            candle_summary_1d,  
+            latest_price, support_1d, resistance_1d
         )
 
         st.subheader(f"{symbol} 1H")
@@ -621,7 +616,8 @@ def stock_analyzer(symbols):
         st.subheader("📊 Candlestick Patterns (4H)")
         st.markdown(candlestick_summary(df_4h))
         st.subheader("📊 Candlestick Patterns (1D)")
-        st.markdown(candlestick_summary(df_1d))
+        candle_summary_1d = candlestick_summary(df_1d)
+        st.markdown(candle_summary_1d)
         latest_price = df_1d['Close'].iloc[-1]
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
