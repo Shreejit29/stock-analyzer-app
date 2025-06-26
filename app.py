@@ -10,6 +10,38 @@ import streamlit as st
 import feedparser
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+def suggest_trade_type(signal_1h, signal_4h, signal_1d, vix, confidence, candle_summary, latest_price, support, resistance):
+    """
+    Suggest Intraday / Swing / Positional trade based on signal strength, candlestick, support/resistance, and VIX.
+    """
+    candle_strength = any(kw in candle_summary for kw in [
+        "Bullish Engulfing", "Three White Soldiers", "Morning Star", "Hammer"
+    ])
+    candle_bear = any(kw in candle_summary for kw in [
+        "Bearish Engulfing", "Three Black Crows", "Evening Star", "Shooting Star"
+    ])
+
+    near_support = 0 < (latest_price - support) / latest_price * 100 < 2
+    near_resistance = 0 < (resistance - latest_price) / latest_price * 100 < 2
+    breakout = latest_price > resistance
+    breakdown = latest_price < support
+
+    if confidence >= 80 and 'Bullish' in signal_1d and candle_strength and (breakout or near_support):
+        return "📈 **Positional Buy** → Strong daily trend + bullish candle + near support or breakout"
+    elif confidence >= 80 and 'Bearish' in signal_1d and candle_bear and (breakdown or near_resistance):
+        return "📉 **Positional Sell** → Bearish daily signal + near resistance or breakdown"
+
+    if confidence >= 60 and 'Bullish' in signal_4h and (breakout or near_support):
+        return "🚀 **Swing Long** → Bullish 4H signal near support or breaking resistance"
+    elif confidence >= 60 and 'Bearish' in signal_4h and (breakdown or near_resistance):
+        return "🔻 **Swing Short** → Bearish setup at key zone"
+
+    if confidence >= 40 and 'Bullish' in signal_1h and vix < 20:
+        return "💥 **Intraday Buy** → Low volatility + RSI/OBV support"
+    elif confidence >= 40 and 'Bearish' in signal_1h and vix < 20:
+        return "⚡ **Intraday Short** → Intraday breakdown + low VIX"
+
+    return "⚖️ **No strong trade setup** — Wait for clearer confirmation"
 
 NEWS_API_KEY = "fe8fa3ba495e480dbcc76feabad630b0"  
 analyzer = SentimentIntensityAnalyzer()
@@ -512,6 +544,15 @@ def stock_analyzer(symbols):
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
         
         # === Compute weighted final signal ===
+
+        bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
+        bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_1h + clues_4h + clues_1d)
+        
+        total_clues = bull_clues + bear_clues
+        confidence = (abs(bull_clues - bear_clues) / total_clues) if total_clues else 0
+        confidence_percent = round(confidence * 100)
+        
+        # Weighted score from timeframes
         score = 0
         if 'Bullish' in signal_1d:
             score += 0.6
@@ -519,7 +560,6 @@ def stock_analyzer(symbols):
             score += 0.3
         if 'Bullish' in signal_1h:
             score += 0.1
-        
         if 'Bearish' in signal_1d:
             score -= 0.6
         if 'Bearish' in signal_4h:
@@ -527,16 +567,29 @@ def stock_analyzer(symbols):
         if 'Bearish' in signal_1h:
             score -= 0.1
         
+        # Bias decision
         if score >= 0.7:
-            final = '💹 Ultra Strong Bullish (weighted)'
+            bias = '💹 Ultra Strong Bullish'
         elif score >= 0.4:
-            final = '📈 Bullish bias (weighted)'
+            bias = '📈 Bullish bias'
         elif score <= -0.7:
-            final = '🔻 Ultra Strong Bearish (weighted)'
+            bias = '🔻 Ultra Strong Bearish'
         elif score <= -0.4:
-            final = '📉 Bearish bias (weighted)'
+            bias = '📉 Bearish bias'
         else:
-            final = '⚖️ Mixed / Neutral (weighted)'
+            bias = '⚖️ Mixed / Neutral'
+        final = f"{bias} (Confidence: {confidence_percent}%)"
+        trade_suggestion = suggest_trade_type(
+            signal_1h,
+            signal_4h,
+            signal_1d,
+            latest_vix,
+            confidence_percent,
+            candles_1d,
+            latest_price,
+            support_1d,
+            resistance_1d
+        )
 
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
@@ -555,6 +608,8 @@ def stock_analyzer(symbols):
 
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
         st.success(f"Final Combined Signal: {final}")
+        st.markdown(f"**🧮 Clue Breakdown**: Bullish clues = {bull_clues}, Bearish clues = {bear_clues}")
+        st.progress(confidence)  # Confidence as a visual progress bar
         if latest_vix and latest_vix > 20:
             st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
         if 'Bullish' in final and nifty_trend == 'down':
@@ -581,7 +636,8 @@ def stock_analyzer(symbols):
         st.subheader("📏 Support/Resistance Alert")
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.markdown(sr_alert)
-        
+        st.subheader("💼 Trade Type Suggestion")
+        st.markdown(trade_suggestion)
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
