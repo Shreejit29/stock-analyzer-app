@@ -162,7 +162,7 @@ def stock_analyzer(symbols):
             return "✅ No immediate support/resistance barrier risk."
         else:
             return "\n".join(alerts)
-    def suggest_option_strategy(final_signal, latest_price, vix_level, confidence_pct):
+    def suggest_option_strategy(final_signal, latest_price, vix_level, confidence_percent):
         strike_step = 10
         atm = round(latest_price / strike_step) * strike_step
         spread_width = 20
@@ -170,9 +170,9 @@ def stock_analyzer(symbols):
     
         suggestion = ""
     
-        strong_conf = confidence_pct >= 70
-        moderate_conf = 50 <= confidence_pct < 70
-        low_conf = confidence_pct < 50
+        strong_conf = confidence_percent >= 70
+        moderate_conf = 50 <= confidence_percent < 70
+        low_conf = confidence_percent < 50
     
         if 'Bullish' in final_signal:
             if strong_conf:
