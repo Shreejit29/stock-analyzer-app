@@ -580,7 +580,33 @@ def stock_analyzer(symbols):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
         latest_price = df_1d['Close'].iloc[-1]
+        def suggest_trade_timing(signal_1h, signal_4h, signal_1d):
+            if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
+                return "🧭 Positional Buy Setup (>5 days)", "positional"
+            elif 'Bullish' in signal_1h and 'Bullish' in signal_4h:
+                return "🔁 Swing Trade Opportunity (2–5 days)", "swing"
+            elif 'Bullish' in signal_1h:
+                return "🕐 Intraday Long Bias", "intraday"
+            elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
+                return "🧭 Positional Short Setup (>5 days)", "positional"
+            elif 'Bearish' in signal_1h and 'Bearish' in signal_4h:
+                return "🔁 Swing Short Opportunity (2–5 days)", "swing"
+            elif 'Bearish' in signal_1h:
+                return "🕐 Intraday Short Bias", "intraday"
+            else:
+                return "⚠️ Unclear — Better to Wait", "wait"
 
+        trade_description, trade_level = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
+        # === Suggest Trade Type First (so we can pick proper S/R window)
+        trade_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
+        
+        if "Intraday" in trade_type:
+            support_sr, resistance_sr = support_1h, resistance_1h
+        elif "Swing" in trade_type:
+            support_sr, resistance_sr = support_4h, resistance_4h
+        else:  # Positional or unclear
+            support_sr, resistance_sr = support_1d, resistance_1d
+        
         # === Count clues ===
         bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
         bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_1h + clues_4h + clues_1d)
@@ -624,35 +650,7 @@ def stock_analyzer(symbols):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
-
-        
-        def suggest_trade_timing(signal_1h, signal_4h, signal_1d):
-            if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
-                return "🧭 Positional Buy Setup (>5 days)", "positional"
-            elif 'Bullish' in signal_1h and 'Bullish' in signal_4h:
-                return "🔁 Swing Trade Opportunity (2–5 days)", "swing"
-            elif 'Bullish' in signal_1h:
-                return "🕐 Intraday Long Bias", "intraday"
-            elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
-                return "🧭 Positional Short Setup (>5 days)", "positional"
-            elif 'Bearish' in signal_1h and 'Bearish' in signal_4h:
-                return "🔁 Swing Short Opportunity (2–5 days)", "swing"
-            elif 'Bearish' in signal_1h:
-                return "🕐 Intraday Short Bias", "intraday"
-            else:
-                return "⚠️ Unclear — Better to Wait", "wait"
-
-        trade_description, trade_level = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
-        # === Suggest Trade Type First (so we can pick proper S/R window)
-        trade_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
-        
-        if "Intraday" in trade_type:
-            support_sr, resistance_sr = support_1h, resistance_1h
-        elif "Swing" in trade_type:
-            support_sr, resistance_sr = support_4h, resistance_4h
-        else:  # Positional or unclear
-            support_sr, resistance_sr = support_1d, resistance_1d
-        
+      
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
