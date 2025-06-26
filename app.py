@@ -580,33 +580,35 @@ def stock_analyzer(symbols):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
         latest_price = df_1d['Close'].iloc[-1]
+        # === Decide trade type based on signal alignment first ===
         def suggest_trade_timing(signal_1h, signal_4h, signal_1d):
             if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
-                return "🧭 Positional Buy Setup (>5 days)", "positional"
+                return "🧭 Positional Buy Setup (>5 days)", "Positional"
             elif 'Bullish' in signal_1h and 'Bullish' in signal_4h:
-                return "🔁 Swing Trade Opportunity (2–5 days)", "swing"
+                return "🔁 Swing Trade Opportunity (2–5 days)", "Swing"
             elif 'Bullish' in signal_1h:
-                return "🕐 Intraday Long Bias", "intraday"
+                return "🕐 Intraday Long Bias", "Intraday"
             elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
-                return "🧭 Positional Short Setup (>5 days)", "positional"
+                return "🧭 Positional Short Setup (>5 days)", "Positional"
             elif 'Bearish' in signal_1h and 'Bearish' in signal_4h:
-                return "🔁 Swing Short Opportunity (2–5 days)", "swing"
+                return "🔁 Swing Short Opportunity (2–5 days)", "Swing"
             elif 'Bearish' in signal_1h:
-                return "🕐 Intraday Short Bias", "intraday"
+                return "🕐 Intraday Short Bias", "Intraday"
             else:
-                return "⚠️ Unclear — Better to Wait", "wait"
+                return "⚠️ Unclear — Better to Wait", "Neutral"
 
         trade_description, trade_level = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
         # === Suggest Trade Type First (so we can pick proper S/R window)
-        trade_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
+        trade_type, strategy_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
         
-        if "Intraday" in trade_type:
-            support_sr, resistance_sr = support_1h, resistance_1h
-        elif "Swing" in trade_type:
-            support_sr, resistance_sr = support_4h, resistance_4h
-        else:  # Positional or unclear
-            support_sr, resistance_sr = support_1d, resistance_1d
-        
+        # Assign support/resistance based on strategy type
+        if strategy_type == "Intraday":
+            sr_support, sr_resistance = support_1h, resistance_1h
+        elif strategy_type == "Swing":
+            sr_support, sr_resistance = support_4h, resistance_4h
+        else:  # Positional or fallback
+            sr_support, sr_resistance = support_1d, resistance_1d
+
         # === Count clues ===
         bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
         bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_1h + clues_4h + clues_1d)
@@ -692,13 +694,7 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        # Decide which support/resistance based on strategy_type
-        if "Intraday" in strategy_type:
-            sr_support, sr_resistance = support_1h, resistance_1h
-        elif "Swing" in strategy_type:
-            sr_support, sr_resistance = support_4h, resistance_4h
-        else:  # Positional or Neutral fallback
-            sr_support, sr_resistance = support_1d, resistance_1d
+        
         strategy_suggestion, strategy_type = suggest_option_strategy(
             final_signal=final,
             latest_price=latest_price,
@@ -707,6 +703,7 @@ def stock_analyzer(symbols):
             support=sr_support,
             resistance=sr_resistance
         )
+      
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
         st.subheader("📏 Support/Resistance Alert")
