@@ -10,9 +10,7 @@ import streamlit as st
 import feedparser
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-latest_price = df_1d['Close'].iloc[-1] 
-support_1d = support_1d
-resistance_1d = resistance_1d
+
 def suggest_trade_type(signal_1h, signal_4h, signal_1d, vix, confidence, candle_summary, latest_price, support, resistance):
     """
     Suggest Intraday / Swing / Positional trade based on signal strength, candlestick, support/resistance, and VIX.
@@ -427,6 +425,14 @@ def stock_analyzer(symbols):
 
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
+
+        if df_1d is None or df_1d.empty:
+            st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
+            continue
+        
+        df_1d = compute_indicators(df_1d)
+        latest_price = df_1d['Close'].iloc[-1]  # ✅ Defined after validation
+
         df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
         df_1d = detect_candlestick_patterns(df_1d)
         df_4h = detect_candlestick_patterns(df_4h)
