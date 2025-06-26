@@ -566,7 +566,23 @@ def stock_analyzer(symbols):
         else:
             bias = '⚖️ Mixed / Neutral'
         final = f"{bias} (Confidence: {confidence_percent}%)"
-        
+        def suggest_trade_timing(signal_1h, signal_4h, signal_1d):
+            if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
+                return "🧭 Positional Buy Setup (>5 days)"
+            elif 'Bullish' in signal_1h and 'Bullish' in signal_4h:
+                return "🔁 Swing Trade Opportunity (2–5 days)"
+            elif 'Bullish' in signal_1h:
+                return "🕐 Intraday Long Bias"
+            elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
+                return "🧭 Positional Short Setup (>5 days)"
+            elif 'Bearish' in signal_1h and 'Bearish' in signal_4h:
+                return "🔁 Swing Short Opportunity (2–5 days)"
+            elif 'Bearish' in signal_1h:
+                return "🕐 Intraday Short Bias"
+            else:
+                return "⚠️ Unclear — Better to Wait"
+
+        trade_timing = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
@@ -586,6 +602,10 @@ def stock_analyzer(symbols):
         st.success(f"Final Combined Signal: {final}")
         st.markdown(f"**🧮 Clue Breakdown**: Bullish clues = {bull_clues}, Bearish clues = {bear_clues}")
         st.progress(confidence)  # Confidence as a visual progress bar
+        st.subheader("📌 Trade Confidence & Timing Recommendation")
+        st.markdown(f"**🔹 Bias:** {bias}")
+        st.markdown(f"**🔹 Confidence Score:** `{confidence}%`")
+        st.markdown(f"**🔹 Timeframe Suggestion:** {trade_timing}")
         if latest_vix and latest_vix > 20:
             st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
         if 'Bullish' in final and nifty_trend == 'down':
