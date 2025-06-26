@@ -137,31 +137,37 @@ def stock_analyzer(symbols):
             return "\n".join(warnings)
         else:
             return "✅ No major risk signals detected. Market seems stable at the moment."
-
-    def calc_support_resistance(close_series):
-        window = 20
+    def calc_support_resistance(close_series, window=20):
+        """
+        Calculate support and resistance using rolling window min/max.
+        """
+        if len(close_series) < window:
+            return close_series.min(), close_series.max()  # fallback
         support = close_series.rolling(window).min().iloc[-1]
         resistance = close_series.rolling(window).max().iloc[-1]
         return support, resistance
+
     def support_resistance_alert(latest_price, support, resistance):
         """
         Generate alert if price is too close to support or resistance.
         """
         support_gap_pct = (latest_price - support) / latest_price * 100
         resistance_gap_pct = (resistance - latest_price) / latest_price * 100
-        
+    
         alerts = []
-        
+    
         if support_gap_pct >= 0 and support_gap_pct < 2:
             alerts.append(f"⚠️ Price is within {support_gap_pct:.2f}% of support — risk of breakdown if breached.")
-        
+    
         if resistance_gap_pct >= 0 and resistance_gap_pct < 2:
             alerts.append(f"⚠️ Price is within {resistance_gap_pct:.2f}% of resistance — possible reversal zone.")
-        
+    
         if not alerts:
-            return "✅ No immediate support/resistance barrier risk."
+            return "✅ No immediate support/resistance barrier risk.", support_gap_pct, resistance_gap_pct
         else:
-            return "\n".join(alerts)
+            return "\n".join(alerts), support_gap_pct, resistance_gap_pct
+
+   
     def suggest_option_strategy(final_signal, latest_price, vix_level, confidence_percent, support, resistance):
         strike_step = 10
         atm = round(latest_price / strike_step) * strike_step
@@ -439,7 +445,9 @@ def stock_analyzer(symbols):
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
         df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
-        
+        support_1h, resistance_1h = calc_support_resistance(df_1h['Close'], window=40)
+        support_4h, resistance_4h = calc_support_resistance(df_4h['Close'], window=60)
+        support_1d, resistance_1d = calc_support_resistance(df_1d['Close'], window=120)
         sentiment_score = fetch_sentiment_from_newsapi(symbol)
         if sentiment_score is None:
             sentiment_score = 0.0  # default neutral
@@ -572,77 +580,90 @@ def stock_analyzer(symbols):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
         latest_price = df_1d['Close'].iloc[-1]
-        # === Compute weighted final signal ===
-        
+
+        # === Count clues ===
         bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
         bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_1h + clues_4h + clues_1d)
-        
         total_clues = bull_clues + bear_clues
-        confidence = (abs(bull_clues - bear_clues) / total_clues) if total_clues else 0
-        confidence_percent = round(confidence * 100)
-        
-        # === Weighted Signal Logic ===
+        raw_confidence = (abs(bull_clues - bear_clues) / total_clues) if total_clues else 0
+
+        # === Weighted Signal Score ===
         score = 0
-        if 'Bullish' in signal_1d:
-            score += 0.6
-        if 'Bullish' in signal_4h:
-            score += 0.3
-        if 'Bullish' in signal_1h:
-            score += 0.1
-        if 'Bearish' in signal_1d:
-            score -= 0.6
-        if 'Bearish' in signal_4h:
-            score -= 0.3
-        if 'Bearish' in signal_1h:
-            score -= 0.1
-   
-        confidence = round(abs(score) * 100)
-        bias = 'Bullish' if score > 0 else 'Bearish' if score < 0 else 'Neutral'
+        if 'Bullish' in signal_1d: score += 0.6
+        if 'Bullish' in signal_4h: score += 0.3
+        if 'Bullish' in signal_1h: score += 0.1
+        if 'Bearish' in signal_1d: score -= 0.6
+        if 'Bearish' in signal_4h: score -= 0.3
+        if 'Bearish' in signal_1h: score -= 0.1
         
-        resistance_gap_pct = (resistance_1d - latest_price) / latest_price * 100
-        support_gap_pct = (latest_price - support_1d) / latest_price * 100
+        bias = 'Bullish' if score > 0 else 'Bearish' if score < 0 else 'Neutral'
+        confidence = round(abs(score) * 100)
+        
+        # === Suggest Trade Type First (so we can pick proper S/R window)
+        trade_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
+        
+        if "Intraday" in trade_type:
+            support_sr, resistance_sr = support_1h, resistance_1h
+        elif "Swing" in trade_type:
+            support_sr, resistance_sr = support_4h, resistance_4h
+        else:  # Positional or unclear
+            support_sr, resistance_sr = support_1d, resistance_1d
+        
+        # === Adjust Confidence Based on S/R proximity
+        resistance_gap_pct = (resistance_sr - latest_price) / latest_price * 100
+        support_gap_pct = (latest_price - support_sr) / latest_price * 100
         
         if 0 <= resistance_gap_pct <= 1.5:
             confidence -= 10  # Near resistance — risky
-        
         if 0 <= support_gap_pct <= 1.5:
-            confidence += 10  # Near support — could bounce
+            confidence += 10  # Near support — chance of bounce
         
-        # === OBV confirmation adjustment ===
+        # === OBV Trend Confirmation (still from 1D)
         obv_trend = df_1d['OBV'].iloc[-1] - df_1d['OBV'].iloc[-5]
-        if obv_trend > 0 and latest_price > resistance_1d:
-            confidence += 10  # Volume supports breakout
-        elif obv_trend < 0 and latest_price >= resistance_1d:
-            confidence -= 10  # Price at top, OBV falling = caution
+        if obv_trend > 0 and latest_price > resistance_sr:
+            confidence += 10  # Breakout with volume
+        elif obv_trend < 0 and latest_price >= resistance_sr:
+            confidence -= 10  # Price up but OBV falling
         
-        # Clamp confidence between 0 and 100
+        # Clamp confidence
         confidence = max(0, min(100, confidence))
-
+        
+        # === Final Signal
         if confidence >= 70:
             final = f"💹 Ultra Strong {bias} (Confidence: {confidence}%)"
         elif confidence >= 40:
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
+
         
-        # === Trade Type Suggestion ===
         def suggest_trade_timing(signal_1h, signal_4h, signal_1d):
             if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
-                return "🧭 Positional Buy Setup (>5 days)"
+                return "🧭 Positional Buy Setup (>5 days)", "positional"
             elif 'Bullish' in signal_1h and 'Bullish' in signal_4h:
-                return "🔁 Swing Trade Opportunity (2–5 days)"
+                return "🔁 Swing Trade Opportunity (2–5 days)", "swing"
             elif 'Bullish' in signal_1h:
-                return "🕐 Intraday Long Bias"
+                return "🕐 Intraday Long Bias", "intraday"
             elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
-                return "🧭 Positional Short Setup (>5 days)"
+                return "🧭 Positional Short Setup (>5 days)", "positional"
             elif 'Bearish' in signal_1h and 'Bearish' in signal_4h:
-                return "🔁 Swing Short Opportunity (2–5 days)"
+                return "🔁 Swing Short Opportunity (2–5 days)", "swing"
             elif 'Bearish' in signal_1h:
-                return "🕐 Intraday Short Bias"
+                return "🕐 Intraday Short Bias", "intraday"
             else:
-                return "⚠️ Unclear — Better to Wait"
-        
-        trade_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
+                return "⚠️ Unclear — Better to Wait", "wait"
+
+        trade_description, trade_level = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
+
+        # Then use trade_level to pick support/resistance dynamically:
+        if trade_level == "intraday":
+            support_sr, resistance_sr = support_1h, resistance_1h
+        elif trade_level == "swing":
+            support_sr, resistance_sr = support_4h, resistance_4h
+        else:  # "positional" or fallback
+            support_sr, resistance_sr = support_1d, resistance_1d
+
+      
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
@@ -684,13 +705,31 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        strategy_suggestion, strat_type = suggest_option_strategy(final, latest_price, vix_for_strategy, confidence_percent, support_1d, resistance_1d)
+        # Decide which support/resistance based on strategy_type
+        if "Intraday" in strategy_type:
+            sr_support, sr_resistance = support_1h, resistance_1h
+        elif "Swing" in strategy_type:
+            sr_support, sr_resistance = support_4h, resistance_4h
+        else:  # Positional or Neutral fallback
+            sr_support, sr_resistance = support_1d, resistance_1d
+
+        strategy_suggestion, strategy_type = suggest_option_strategy(
+            final_signal=final,
+            latest_price=latest_price,
+            vix_level=vix_for_strategy,
+            confidence_percent=confidence_percent,
+            support=sr_support,
+            resistance=sr_resistance
+        )
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
         st.subheader("📏 Support/Resistance Alert")
-        sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
-        st.markdown(sr_alert)
-
+        sr_alert_Positional = support_resistance_alert(latest_price, support_1d, resistance_1d)
+        sr_alert_swing = support_resistance_alert(latest_price, support_4h, resistance_4h)
+        sr_alert_Intraday = support_resistance_alert(latest_price, support_1h, resistance_1h)
+        st.markdown(sr_alert_Positional)
+        st.markdown(sr_alert_swing)
+        st.markdown(sr_alert_Intraday)
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
