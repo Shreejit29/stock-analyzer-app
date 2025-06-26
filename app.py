@@ -598,7 +598,7 @@ def stock_analyzer(symbols):
         for c in clues_1d:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1D Signal: {signal_1d}")
-
+        candle_summary_1d = candlestick_summary(df_1d)
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
         st.success(f"Final Combined Signal: {final}")
         st.markdown(f"**🧮 Clue Breakdown**: Bullish clues = {bull_clues}, Bearish clues = {bear_clues}")
