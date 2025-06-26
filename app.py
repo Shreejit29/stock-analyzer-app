@@ -167,30 +167,27 @@ def stock_analyzer(symbols):
         atm = round(latest_price / strike_step) * strike_step
         spread_width = 20
         vix_display = f"{vix_level:.2f}" if vix_level is not None else "N/A"
-    
-        # Adjust confidence based on support/resistance proximity
+        
+        suggestion = ""
         support_gap_pct = (latest_price - support) / latest_price * 100
         resistance_gap_pct = (resistance - latest_price) / latest_price * 100
+        
+        near_support = 0 <= support_gap_pct < 2
+        near_resistance = 0 <= resistance_gap_pct < 2
     
-        # Influence rules:
-        if 'Bullish' in final_signal and resistance_gap_pct < 2:
-            confidence_percent -= 10  # Price near resistance, risky for long
-        elif 'Bearish' in final_signal and support_gap_pct < 2:
-            confidence_percent -= 10  # Price near support, risky for short
-        elif 'Bullish' in final_signal and support_gap_pct < 2:
-            confidence_percent += 5  # Bullish near support = stronger case
-        elif 'Bearish' in final_signal and resistance_gap_pct < 2:
-            confidence_percent += 5  # Bearish near resistance = stronger case
-    
-        confidence_percent = max(0, min(100, confidence_percent))  # Keep in 0–100 range
-    
-        suggestion = ""
         strong_conf = confidence_percent >= 70
         moderate_conf = 50 <= confidence_percent < 70
         low_conf = confidence_percent < 50
     
+        # === Bullish Strategies ===
         if 'Bullish' in final_signal:
-            if strong_conf:
+            if near_resistance:
+                suggestion = (
+                    f"⚠️ Price near resistance ({resistance_gap_pct:.2f}%) → Bullish entry risky!\n"
+                    f"👉 Wait for breakout confirmation or use tight SL.\n"
+                    f"📈 Confidence: {confidence_percent}%"
+                )
+            elif strong_conf:
                 suggestion = (
                     f"💡 **Bull Call Spread** (High Confidence)\n"
                     f"👉 Buy {atm} CE, Sell {atm + spread_width} CE\n"
@@ -210,8 +207,15 @@ def stock_analyzer(symbols):
                     f"👉 Suggest: Wait for confirmation or intraday scalp only\n"
                 )
     
+        # === Bearish Strategies ===
         elif 'Bearish' in final_signal:
-            if strong_conf:
+            if near_support:
+                suggestion = (
+                    f"⚠️ Price near support ({support_gap_pct:.2f}%) → Bearish entry risky!\n"
+                    f"👉 Wait for breakdown confirmation or use tight SL.\n"
+                    f"📉 Confidence: {confidence_percent}%"
+                )
+            elif strong_conf:
                 suggestion = (
                     f"💡 **Bear Put Spread** (High Confidence)\n"
                     f"👉 Buy {atm} PE, Sell {atm - spread_width} PE\n"
@@ -229,6 +233,7 @@ def stock_analyzer(symbols):
                     f"👉 Suggest: Avoid fresh short until breakdown confirmation\n"
                 )
     
+        # === Neutral Strategies ===
         elif 'Neutral' in final_signal:
             if vix_level and vix_level >= 20 and strong_conf:
                 suggestion = (
@@ -243,9 +248,15 @@ def stock_analyzer(symbols):
                     f"👉 Suggest: Wait for breakout or range strategy\n"
                 )
     
+        else:
+            suggestion = (
+                f"⚠️ No clear signal\n"
+                f"📉 Confidence: {confidence_percent}%\n"
+                f"👉 Avoid trading until clarity emerges\n"
+            )
+    
         return suggestion
 
-    
     def detect_candlestick_patterns(df):
         df = df.copy()
         body = abs(df['Close'] - df['Open'])
@@ -545,9 +556,7 @@ def stock_analyzer(symbols):
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
-        
         # === Compute weighted final signal ===
-
         bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
         bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_1h + clues_4h + clues_1d)
         
@@ -581,7 +590,6 @@ def stock_analyzer(symbols):
             bias = '📉 Bearish bias'
         else:
             bias = '⚖️ Mixed / Neutral'
-        final = f"{bias} (Confidence: {confidence_percent}%)"
         def suggest_trade_timing(signal_1h, signal_4h, signal_1d):
             if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
                 return "🧭 Positional Buy Setup (>5 days)"
@@ -641,7 +649,8 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy, confidence_percent, support_1d, resistance_1d)
+        strategy_suggestion = suggest_option_strategy(bias, latest_price, vix_for_strategy, confidence_percent, support_1d, resistance_1d)
+       st.success(f"Final Combined Signal: {final}")
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
         st.subheader("📏 Support/Resistance Alert")
