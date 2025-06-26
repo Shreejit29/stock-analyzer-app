@@ -692,13 +692,7 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        # Decide which support/resistance based on strategy_type
-        if "Intraday" in strategy_type:
-            sr_support, sr_resistance = support_1h, resistance_1h
-        elif "Swing" in strategy_type:
-            sr_support, sr_resistance = support_4h, resistance_4h
-        else:  # Positional or Neutral fallback
-            sr_support, sr_resistance = support_1d, resistance_1d
+        
 
         strategy_suggestion, strategy_type = suggest_option_strategy(
             final_signal=final,
@@ -708,6 +702,13 @@ def stock_analyzer(symbols):
             support=sr_support,
             resistance=sr_resistance
         )
+        # Decide which support/resistance based on strategy_type
+        if "Intraday" in strategy_type:
+            sr_support, sr_resistance = support_1h, resistance_1h
+        elif "Swing" in strategy_type:
+            sr_support, sr_resistance = support_4h, resistance_4h
+        else:  # Positional or Neutral fallback
+            sr_support, sr_resistance = support_1d, resistance_1d
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
         st.subheader("📏 Support/Resistance Alert")
