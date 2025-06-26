@@ -585,7 +585,6 @@ def stock_analyzer(symbols):
             candle_summary_1d,  
             latest_price, support_1d, resistance_1d
         )
-
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
