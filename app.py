@@ -572,6 +572,7 @@ def stock_analyzer(symbols):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
         # === Compute weighted final signal ===
+        
         bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
         bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_1h + clues_4h + clues_1d)
         
@@ -597,7 +598,26 @@ def stock_analyzer(symbols):
         # Determine bias and final signal
         confidence = round(abs(score) * 100)
         bias = 'Bullish' if score > 0 else 'Bearish' if score < 0 else 'Neutral'
+        # === Adjust confidence using support/resistance proximity ===
+        resistance_gap_pct = (resistance_1d - latest_price) / latest_price * 100
+        support_gap_pct = (latest_price - support_1d) / latest_price * 100
         
+        if 0 <= resistance_gap_pct <= 1.5:
+            confidence -= 10  # Near resistance — risky
+        
+        if 0 <= support_gap_pct <= 1.5:
+            confidence += 10  # Near support — could bounce
+        
+        # === OBV confirmation adjustment ===
+        obv_trend = df_1d['OBV'].iloc[-1] - df_1d['OBV'].iloc[-5]
+        if obv_trend > 0 and latest_price > resistance_1d:
+            confidence += 10  # Volume supports breakout
+        elif obv_trend < 0 and latest_price >= resistance_1d:
+            confidence -= 10  # Price at top, OBV falling = caution
+        
+        # Clamp confidence between 0 and 100
+        confidence = max(0, min(100, confidence))
+
         if confidence >= 70:
             final = f"💹 Ultra Strong {bias} (Confidence: {confidence}%)"
         elif confidence >= 40:
