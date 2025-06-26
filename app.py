@@ -424,7 +424,11 @@ def stock_analyzer(symbols):
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
         df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
-        
+
+        candle_summary_1d = candlestick_summary(df_1d)
+        candle_summary_4h = candlestick_summary(df_4h)
+        candle_summary_1h = candlestick_summary(df_1h)
+
         sentiment_score = fetch_sentiment_from_newsapi(symbol)
         if sentiment_score is None:
             sentiment_score = 0.0  # default neutral
@@ -610,10 +614,6 @@ def stock_analyzer(symbols):
         elif 'Bearish' in final and nifty_trend == 'up':
             st.warning(f"⚠️ {final} but Nifty up — caution advised!")
 
-        candle_summary_1d = candlestick_summary(df_1d)
-        candle_summary_4h = candlestick_summary(df_4h)
-        candle_summary_1h = candlestick_summary(df_1h)
-        
         st.subheader("📊 Candlestick Patterns (1D)")
         st.markdown(candle_summary_1d)
         
@@ -623,16 +623,7 @@ def stock_analyzer(symbols):
         st.subheader("📊 Candlestick Patterns (1H)")
         st.markdown(candle_summary_1h)
         
-        # Trade suggestion section
-        trade_suggestion = suggest_trade_type(
-            signal_1h, signal_4h, signal_1d,
-            latest_vix if latest_vix is not None else 0,
-            int(score * 100),  # confidence from signal
-            candle_summary_1d,
-            latest_price, support_1d, resistance_1d
-        )
-        st.subheader("📌 Trade Type Suggestion")
-        st.markdown(trade_suggestion)
+        
         latest_price = df_1d['Close'].iloc[-1]
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
@@ -648,6 +639,15 @@ def stock_analyzer(symbols):
         sr_alert = support_resistance_alert(latest_price, support_1d, resistance_1d)
         st.markdown(sr_alert)
 
+        trade_suggestion = suggest_trade_type(
+            signal_1h, signal_4h, signal_1d,
+            latest_vix if latest_vix is not None else 0,
+            int(score * 100),  # confidence from signal
+            candle_summary_1d,
+            latest_price, support_1d, resistance_1d
+        )
+        st.subheader("📌 Trade Type Suggestion")
+        st.markdown(trade_suggestion)
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
