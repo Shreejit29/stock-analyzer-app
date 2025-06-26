@@ -604,7 +604,6 @@ def stock_analyzer(symbols):
         st.progress(confidence)  # Confidence as a visual progress bar
         st.subheader("📌 Trade Confidence & Timing Recommendation")
         st.markdown(f"**🔹 Bias:** {bias}")
-        st.markdown(f"**🔹 Confidence Score:** `{confidence}%`")
         st.markdown(f"**🔹 Timeframe Suggestion:** {trade_timing}")
         if latest_vix and latest_vix > 20:
             st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
