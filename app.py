@@ -162,14 +162,29 @@ def stock_analyzer(symbols):
             return "✅ No immediate support/resistance barrier risk."
         else:
             return "\n".join(alerts)
-    def suggest_option_strategy(final_signal, latest_price, vix_level, confidence_percent):
+    def suggest_option_strategy(final_signal, latest_price, vix_level, confidence_percent, support, resistance):
         strike_step = 10
         atm = round(latest_price / strike_step) * strike_step
         spread_width = 20
         vix_display = f"{vix_level:.2f}" if vix_level is not None else "N/A"
     
-        suggestion = ""
+        # Adjust confidence based on support/resistance proximity
+        support_gap_pct = (latest_price - support) / latest_price * 100
+        resistance_gap_pct = (resistance - latest_price) / latest_price * 100
     
+        # Influence rules:
+        if 'Bullish' in final_signal and resistance_gap_pct < 2:
+            confidence_percent -= 10  # Price near resistance, risky for long
+        elif 'Bearish' in final_signal and support_gap_pct < 2:
+            confidence_percent -= 10  # Price near support, risky for short
+        elif 'Bullish' in final_signal and support_gap_pct < 2:
+            confidence_percent += 5  # Bullish near support = stronger case
+        elif 'Bearish' in final_signal and resistance_gap_pct < 2:
+            confidence_percent += 5  # Bearish near resistance = stronger case
+    
+        confidence_percent = max(0, min(100, confidence_percent))  # Keep in 0–100 range
+    
+        suggestion = ""
         strong_conf = confidence_percent >= 70
         moderate_conf = 50 <= confidence_percent < 70
         low_conf = confidence_percent < 50
@@ -230,6 +245,7 @@ def stock_analyzer(symbols):
     
         return suggestion
 
+    
     def detect_candlestick_patterns(df):
         df = df.copy()
         body = abs(df['Close'] - df['Open'])
@@ -625,7 +641,7 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy, confidence_percent)
+        strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy, confidence_percent, support_1d, resistance_1d)
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
         st.subheader("📏 Support/Resistance Alert")
