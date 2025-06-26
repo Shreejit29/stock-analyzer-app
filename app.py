@@ -599,15 +599,6 @@ def stock_analyzer(symbols):
         bias = 'Bullish' if score > 0 else 'Bearish' if score < 0 else 'Neutral'
         confidence = round(abs(score) * 100)
         
-        # === Suggest Trade Type First (so we can pick proper S/R window)
-        trade_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
-        
-        if "Intraday" in trade_type:
-            support_sr, resistance_sr = support_1h, resistance_1h
-        elif "Swing" in trade_type:
-            support_sr, resistance_sr = support_4h, resistance_4h
-        else:  # Positional or unclear
-            support_sr, resistance_sr = support_1d, resistance_1d
         
         # === Adjust Confidence Based on S/R proximity
         resistance_gap_pct = (resistance_sr - latest_price) / latest_price * 100
@@ -654,16 +645,16 @@ def stock_analyzer(symbols):
                 return "⚠️ Unclear — Better to Wait", "wait"
 
         trade_description, trade_level = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
-
-        # Then use trade_level to pick support/resistance dynamically:
-        if trade_level == "intraday":
+        # === Suggest Trade Type First (so we can pick proper S/R window)
+        trade_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
+        
+        if "Intraday" in trade_type:
             support_sr, resistance_sr = support_1h, resistance_1h
-        elif trade_level == "swing":
+        elif "Swing" in trade_type:
             support_sr, resistance_sr = support_4h, resistance_4h
-        else:  # "positional" or fallback
+        else:  # Positional or unclear
             support_sr, resistance_sr = support_1d, resistance_1d
-
-      
+        
         st.subheader(f"{symbol} 1H")
         for c in clues_1h:
             st.write(f"🔹 {c}")
