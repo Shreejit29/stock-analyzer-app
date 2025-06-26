@@ -571,6 +571,7 @@ def stock_analyzer(symbols):
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
+        latest_price = df_1d['Close'].iloc[-1]
         # === Compute weighted final signal ===
         
         bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
@@ -676,7 +677,7 @@ def stock_analyzer(symbols):
         st.markdown(candlestick_summary(df_4h))
         st.subheader("📊 Candlestick Patterns (1D)")
         st.markdown(candlestick_summary(df_1d))
-        latest_price = df_1d['Close'].iloc[-1]
+
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
