@@ -611,7 +611,7 @@ def stock_analyzer(symbols):
         bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
         bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_1h + clues_4h + clues_1d)
         total_clues = bull_clues + bear_clues
-        raw_confidence = (abs(bull_clues - bear_clues) / total_clues) if total_clues else 0
+        confidence_percent = round(abs(bull_clues - bear_clues) / total_clues * 100) if total_clues else 0
 
         # === Weighted Signal Score ===
         score = 0
