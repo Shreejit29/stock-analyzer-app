@@ -549,7 +549,21 @@ def stock_analyzer(symbols):
                 positional_msg = "✅ Positional Bullish Bias (Price above VWAP)"
             else:
                 positional_msg = "🔻 Positional Bearish Bias (Price below VWAP)"
-        
+            # Price Action Confirmation Logic
+            if latest['Close'] > resistance * 1.002:  # Breakout with at least 0.2% margin
+                clues.append("✅ Price action confirms breakout above resistance")
+            elif latest['Bullish_Engulfing'] or latest['Three_White_Soldiers'] or latest['Piercing_Line']:
+                clues.append("✅ Bullish candlestick pattern confirms breakout intent")
+            else:
+                clues.append("⚠️ No strong price action confirmation above resistance")
+            recent_vol = df['Volume'].tail(5).mean()
+            breakout_vol_confirmed = latest['Volume'] > 1.5 * recent_vol
+            
+            if breakout_vol_confirmed:
+                clues.append("📊 Volume supports move — strong breakout potential")
+            else:
+                clues.append("⚠️ Weak volume — move may not sustain")
+
             clues.append(swing_msg)
             clues.append(positional_msg)
 
