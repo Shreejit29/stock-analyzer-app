@@ -10,6 +10,9 @@ import streamlit as st
 import feedparser
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+latest_price = df_1d['Close'].iloc[-1] 
+support_1d = support_1d
+resistance_1d = resistance_1d
 def suggest_trade_type(signal_1h, signal_4h, signal_1d, vix, confidence, candle_summary, latest_price, support, resistance):
     """
     Suggest Intraday / Swing / Positional trade based on signal strength, candlestick, support/resistance, and VIX.
