@@ -181,17 +181,17 @@ def stock_analyzer(symbols):
                     f"👉 Buy {atm} CE, Sell {atm + spread_width} CE\n"
                     f"🎯 Target: Swing move 2–5 days\n"
                     f"🛡️ Risk: Defined, Good Reward Ratio\n"
-                    f"📈 Confidence: {confidence_pct}%"
+                    f"📈 Confidence: {confidence_percent}%"
                 )
             elif moderate_conf:
                 suggestion = (
                     f"💡 **Moderate Bull Call Spread** (Medium Confidence)\n"
                     f"👉 Buy {atm + 10} CE, Sell {atm + 30} CE\n"
-                    f"📈 Confidence: {confidence_pct}%, keep SL tight"
+                    f"📈 Confidence: {confidence_percent}%, keep SL tight"
                 )
             else:
                 suggestion = (
-                    f"⚠️ Weak Bullish Confidence ({confidence_pct}%)\n"
+                    f"⚠️ Weak Bullish Confidence ({confidence_percent}%)\n"
                     f"👉 Suggest: Wait for confirmation or intraday scalp only\n"
                 )
     
@@ -200,17 +200,17 @@ def stock_analyzer(symbols):
                 suggestion = (
                     f"💡 **Bear Put Spread** (High Confidence)\n"
                     f"👉 Buy {atm} PE, Sell {atm - spread_width} PE\n"
-                    f"📉 Confidence: {confidence_pct}%, Ideal for swing short\n"
+                    f"📉 Confidence: {confidence_percent}%, Ideal for swing short\n"
                 )
             elif moderate_conf:
                 suggestion = (
                     f"💡 **Moderate Bear Spread** (Medium Confidence)\n"
                     f"👉 Buy {atm - 10} PE, Sell {atm - 30} PE\n"
-                    f"⚠️ Confidence: {confidence_pct}%, use SL"
+                    f"⚠️ Confidence: {confidence_percent}%, use SL"
                 )
             else:
                 suggestion = (
-                    f"⚠️ Weak Bearish Confidence ({confidence_pct}%)\n"
+                    f"⚠️ Weak Bearish Confidence ({confidence_percent}%)\n"
                     f"👉 Suggest: Avoid fresh short until breakdown confirmation\n"
                 )
     
@@ -220,11 +220,11 @@ def stock_analyzer(symbols):
                     f"💡 **Iron Condor** (High Volatility & Confidence)\n"
                     f"👉 Sell {atm + 50} CE & {atm - 50} PE\n"
                     f"📊 Benefit: Theta decay + volatility crush\n"
-                    f"📈 Confidence: {confidence_pct}%"
+                    f"📈 Confidence: {confidence_percent}%"
                 )
             else:
                 suggestion = (
-                    f"🔍 Neutral bias with Confidence {confidence_pct}%\n"
+                    f"🔍 Neutral bias with Confidence {confidence_percent}%\n"
                     f"👉 Suggest: Wait for breakout or range strategy\n"
                 )
     
