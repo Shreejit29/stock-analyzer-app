@@ -702,12 +702,16 @@ def stock_analyzer(symbols):
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
         st.subheader("📏 Support/Resistance Alert")
-        sr_alert_Positional = "for postional trade", support_resistance_alert(latest_price, support_1d, resistance_1d)
-        sr_alert_swing = "for swing trade", support_resistance_alert(latest_price, support_4h, resistance_4h)
-        sr_alert_Intraday = "for intraday trade", support_resistance_alert(latest_price, support_1h, resistance_1h)
-        st.markdown(sr_alert_Positional)
-        st.markdown(sr_alert_swing)
-        st.markdown(sr_alert_Intraday)
+        
+        st.markdown("**🔵 For Positional Trade:**")
+        st.markdown(support_resistance_alert(latest_price, support_1d, resistance_1d))
+        
+        st.markdown("**🟢 For Swing Trade:**")
+        st.markdown(support_resistance_alert(latest_price, support_4h, resistance_4h))
+        
+        st.markdown("**🟠 For Intraday Trade:**")
+        st.markdown(support_resistance_alert(latest_price, support_1h, resistance_1h))
+
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
