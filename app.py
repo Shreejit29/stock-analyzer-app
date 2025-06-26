@@ -607,7 +607,6 @@ def stock_analyzer(symbols):
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
         strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy, confidence_percent)
-        strategy_suggestion = suggest_option_strategy(final, latest_price, vix_for_strategy)
         st.subheader("💡 Option Strategy Suggestion")
         st.markdown(strategy_suggestion)
         st.subheader("📏 Support/Resistance Alert")
