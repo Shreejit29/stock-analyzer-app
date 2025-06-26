@@ -585,7 +585,7 @@ def stock_analyzer(symbols):
             signal_1d,
             latest_vix,
             confidence_percent,
-            candle_summary,
+            candle_1d,
             latest_price,
             support_1d,
             resistance_1d
