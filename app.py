@@ -644,22 +644,22 @@ def stock_analyzer(symbols):
                 
         st.markdown("**🟠 For Long Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
-        summary = get_manual_summary_whatsapp(
-            symbol=symbol,
-            clues_4h=clues_4h, signal_4h=signal_4h,
-            clues_1d=clues_1d, signal_1d=signal_1d,
-            clues_1w=clues_1w, signal_1w=signal_1w,
-            final=final,
-            trade_description=trade_description,
-            latest_vix=latest_vix,
-            nifty_trend=nifty_trend,
-            resistance_gap_pct=resistance_gap_pct,
-            support_gap_pct=support_gap_pct,
-            bull_clues=bull_clues,
-            bear_clues=bear_clues
+        # === Manual WhatsApp-Friendly Summary
+        whatsapp_summary = get_manual_summary_whatsapp(
+            symbol,
+            clues_4h, signal_4h,
+            clues_1d, signal_1d,
+            clues_1w, signal_1w,
+            final,
+            trade_description,
+            latest_vix, nifty_trend,
+            resistance_gap_pct, support_gap_pct,
+            bull_clues, bear_clues
         )
+        
+        st.subheader("📤 WhatsApp-Friendly Summary")
+        st.code(whatsapp_summary, language="markdown")
 
-        st.markdown(summary)
 
 
 def candlestick_summary(df):
