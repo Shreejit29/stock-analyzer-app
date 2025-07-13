@@ -724,7 +724,7 @@ def stock_analyzer(symbols, summary_only=False):
         st.markdown("📤 **WhatsApp-Friendly Summary**")
         st.code(summary)
         if summary_only:
-          st.markdown(whatsapp_summary(...))  # Only WhatsApp Summary
+          st.markdown(generate_summary(...))  # Only WhatsApp Summary
           return
 
 
