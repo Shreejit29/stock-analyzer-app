@@ -679,7 +679,22 @@ def stock_analyzer(symbols, summary_only=False):
             if summary_table:
               st.markdown("### 📋 Final Summary Table (All Stocks)")
               st.table(summary_table)  
-  
+            # 🔽 Save table to Excel (in memory)
+            df_summary = pd.DataFrame(summary_table)
+            excel_buffer = BytesIO()
+            with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+                df_summary.to_excel(writer, index=False, sheet_name="Summary")
+            excel_buffer.seek(0)
+
+            # 🔽 Provide download button
+            st.download_button(
+                label="📥 Download Summary as Excel",
+                data=excel_buffer,
+                file_name="stock_summary.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"summary_download_{len(summary_table)}"  # ✅ Unique key
+            )
+
             
         else:
           st.subheader(f"{symbol} 4H")
