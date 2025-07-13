@@ -665,8 +665,7 @@ def stock_analyzer(symbols, summary_only=False):
               "Price" : latest_price,
               "Trade Type": trade_description,
               "Final Signal": final,
-              "Action Plan": action_note
-              })
+              "Action Plan": action_note})
           # Markdown-friendly, copyable table
           st.markdown("### 📋 Final Summary Table (Copy-Friendly)\n")
           markdown_table = "| Symbol | Trade Type | Final Signal | Action Plan |\n"
