@@ -6,67 +6,62 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
-def get_manual_summary_whatsapp(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w,
-                                final, trade_description, latest_vix, nifty_trend,
-                                resistance_gap_pct, support_gap_pct, bull_clues, bear_clues):
+def generate_summary(symbol, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d, clues_1w,
+                     final, trade_description, latest_vix, nifty_trend,
+                     sr_support, sr_resistance, latest_price, traps_4h, traps_1d, traps_1w):
 
-    lines = [
-        f"📊 *{symbol.upper()} Trade Summary*",
-        f"🔎 Final Signal: {final}",
-        f"🎯 Trade Type: {trade_description}",
-        f"🟢 Bullish Clues: {bull_clues} | 🔴 Bearish Clues: {bear_clues}"
-    ]
+    # Count clues
+    bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
+    bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_4h + clues_1d + clues_1w)
 
-    # Trap Alerts
-    trap_lines = []
-    for tf, clues in zip(['4H', '1D', '1W'], [clues_4h, clues_1d, clues_1w]):
-        traps = [c for c in clues if 'Trap' in c or ('Breakout' in c and '⚠️' in c) or '🚨' in c]
-        if traps:
-            trap_lines.append(f"🚨 *Trap on {tf}*")
-            for t in traps:
-                trap_lines.append(f"• {t}")
-    if trap_lines:
-        lines.append("🚨 *Trap Alerts*")
-        lines.extend(trap_lines)
-    else:
-        lines.append("✅ No trap signals.")
+    # Trap detection
+    all_traps = traps_4h + traps_1d + traps_1w
+    trap_note = "🚫 No trap signals detected." if not all_traps else f"🚨 Trap Alert: {len(all_traps)} suspicious breakout signal(s)."
 
-    # Volume
-    if any("Weak volume" in c for c in clues_4h + clues_1d + clues_1w):
-        lines.append("⚠️ Low volume — move may not sustain.")
+    # Support/resistance proximity
+    support_gap = round((latest_price - sr_support) / latest_price * 100, 2)
+    resistance_gap = round((sr_resistance - latest_price) / latest_price * 100, 2)
 
-    # Resistance/Support
-    if 0 <= resistance_gap_pct <= 1.5:
-        lines.append("⚠️ Near resistance — rejection possible.")
-    if 0 <= support_gap_pct <= 1.5:
-        lines.append("⚠️ Near support — breakdown risk.")
+    support_note = f"⚠️ Price is near support ({support_gap}%) — watch for breakdown." if 0 <= support_gap <= 1.5 else ""
+    resistance_note = f"⚠️ Price is near resistance ({resistance_gap}%) — possible reversal zone." if 0 <= resistance_gap <= 1.5 else ""
 
-    # Market Conditions
-    if float(latest_vix) < 12:
-        lines.append("⚠️ VIX <12 — complacency risk.")
-    if "down" in nifty_trend.lower() and "Bullish" in final:
-        lines.append("⚠️ Nifty down — bullish trades risky.")
+    # Risk notes
+    vix_note = "⚠️ VIX <12 — market may be complacent." if latest_vix < 12 else ""
+    nifty_note = "⚠️ Nifty is trending down — caution on longs." if "down" in nifty_trend.lower() else ""
 
-    # Final Advice
-    lines.append("📈 *Trade Direction*")
-    if "Bullish" in final:
-        if resistance_gap_pct <= 1.5:
-            lines.append("🔼 Long possible — wait for breakout.")
-        elif trap_lines:
-            lines.append("⚠️ Caution: Bull trap risk.")
-        else:
-            lines.append("✅ Long bias supported.")
+    # Action suggestion
+    if "Bullish" in finall:
+        action_note = f"✅ Look for breakout above {sr_resistance} with volume."
     elif "Bearish" in final:
-        if support_gap_pct <= 1.5:
-            lines.append("🔽 Short possible — wait for breakdown.")
-        elif trap_lines:
-            lines.append("⚠️ Caution: Bear trap risk.")
-        else:
-            lines.append("✅ Short bias supported.")
+        action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
     else:
-        lines.append("⏳ Unclear setup — avoid trade.")
+        action_note = "⏸️ Wait — no strong directional confirmation."
 
-    return "\n".join(lines)
+    # Format message
+    summary = f"""
+📊 *{symbol.upper()} - Trade Summary*
+
+📌 *Bias*: {final}
+🎯 *Suggested Trade*: {trade_description}
+
+🧭 *Signal Map*:
+• 4H ➤ {signal_4h}
+• 1D ➤ {signal_1d}
+• 1W ➤ {signal_1w}
+
+📚 *Clue Count*: 🟢 {bull_clues} Bullish | 🔴 {bear_clues} Bearish
+
+{trap_note}
+{support_note}
+{resistance_note}
+{vix_note}
+{nifty_note}
+
+📈 *Action Plan*:
+{action_note}
+""".strip()
+
+    return summary
 
 def generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent):
     lines = []
@@ -717,23 +712,18 @@ def stock_analyzer(symbols):
             st.subheader("🔍 Extra Smart Signal Clues")
             for line in additional_signals:
                 st.write(line)
-
-        # === Manual WhatsApp-Friendly Summary
-        whatsapp_summary = get_manual_summary_whatsapp(
+        summary = generate_summary(
             symbol,
-            clues_4h, signal_4h,
-            clues_1d, signal_1d,
-            clues_1w, signal_1w,
-            final,
-            trade_description,
+            signal_4h, signal_1d, signal_1w,
+            clues_4h, clues_1d, clues_1w,
+            final_signal, trade_description,
             latest_vix, nifty_trend,
-            resistance_gap_pct, support_gap_pct,
-            bull_clues, bear_clues
+            sr_support, sr_resistance, latest_price,
+            traps_4h, traps_1d, traps_1w
         )
         
-        st.subheader("📤 WhatsApp-Friendly Summary")
-        st.code(whatsapp_summary, language="markdown")
-
+        st.markdown("📤 **WhatsApp-Friendly Summary**")
+        st.code(summary)
 
 
 def candlestick_summary(df):
