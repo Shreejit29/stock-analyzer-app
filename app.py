@@ -6,59 +6,7 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
-import streamlit as st
-import feedparser
-import requests
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-
-NEWS_API_KEY = "fe8fa3ba495e480dbcc76feabad630b0"  
-analyzer = SentimentIntensityAnalyzer()
-def fetch_sentiment_from_newsapi(query, max_articles=10):
-    url = f"https://newsapi.org/v2/everything?q={query}&language=en&pageSize={max_articles}&apiKey={NEWS_API_KEY}"
-    response = requests.get(url)
-    
-    if response.status_code != 200:
-        return None
-
-    data = response.json()
-    sentiments = []
-    for article in data.get("articles", []):
-        score = analyzer.polarity_scores(article['title'])['compound']
-        sentiments.append(score)
-    
-    if not sentiments:
-        return None
-    
-    avg_sentiment = sum(sentiments) / len(sentiments)
-    return avg_sentiment
-def display_sentiment_summary(symbols):
-    st.markdown("### 🧠 Market Sentiment Summary (NewsAPI + VADER)")
-
-    # Nifty/market-wide sentiment
-    market_sentiment = fetch_sentiment_from_newsapi("Nifty OR Sensex OR Indian Stock Market")
-    if market_sentiment is not None:
-        market_summary = (
-            "📈 Bullish" if market_sentiment > 0.05 else
-            "📉 Bearish" if market_sentiment < -0.05 else
-            "⚖️ Neutral"
-        )
-        st.markdown(f"**🗞️ Nifty Market Sentiment**: `{market_sentiment:+.2f}` → {market_summary}")
-    else:
-        st.warning("Could not fetch market sentiment.")
-
-    # Per-stock sentiment
-    for symbol in symbols:
-        sentiment = fetch_sentiment_from_newsapi(symbol)
-        if sentiment is not None:
-            label = (
-                "📈 Bullish" if sentiment > 0.05 else
-                "📉 Bearish" if sentiment < -0.05 else
-                "⚖️ Neutral"
-            )
-            st.markdown(f"**🧾 {symbol} Sentiment**: `{sentiment:+.2f}` → {label}")
-        else:
-            st.warning(f"No sentiment found for {symbol}")
-
+# Define Supertrend
 def compute_supertrend(df, period=10, multiplier=3):
     hl2 = (df['High'] + df['Low']) / 2
     atr = AverageTrueRange(df['High'], df['Low'], df['Close'], window=period).average_true_range()
@@ -78,33 +26,14 @@ def compute_supertrend(df, period=10, multiplier=3):
             direction.iloc[i] = 1
         else:
             direction.iloc[i] = -1
-
     df['Supertrend'] = supertrend
     df['Supertrend_dir'] = direction
     return df
-
-def compute_stoch_rsi(df, window=14, smooth1=3, smooth2=3):
-    delta = df['Close'].diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(window=window).mean()
-    avg_loss = loss.rolling(window=window).mean()
-
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-
-    stoch_rsi = (rsi - rsi.rolling(window).min()) / (rsi.rolling(window).max() - rsi.rolling(window).min())
-    stoch_rsi_k = stoch_rsi.rolling(smooth1).mean() * 100
-    stoch_rsi_d = stoch_rsi_k.rolling(smooth2).mean()
-
-    df['StochRSI_K'] = stoch_rsi_k
-    df['StochRSI_D'] = stoch_rsi_d
-    return df
-
+# Compute VWAP
 def compute_vwap(df):
     df['VWAP'] = (df['Volume'] * (df['High'] + df['Low'] + df['Close']) / 3).cumsum() / df['Volume'].cumsum()
     return df
-
+# Main Program
 def stock_analyzer(symbols):
     def detect_divergence(price, indicator):
         if len(price) < 3 or len(indicator) < 3:
@@ -137,6 +66,7 @@ def stock_analyzer(symbols):
             return "\n".join(warnings)
         else:
             return "✅ No major risk signals detected. Market seems stable at the moment."
+    # Support Resistance
     def calc_support_resistance(close_series, window=20):
         """
         Calculate support and resistance using rolling window min/max.
@@ -146,6 +76,7 @@ def stock_analyzer(symbols):
         support = close_series.rolling(window).min().iloc[-1]
         resistance = close_series.rolling(window).max().iloc[-1]
         return support, resistance
+    # Alert of Support Resistance
     def support_resistance_alert(latest_price, support, resistance):
         support_gap_pct = (latest_price - support) / latest_price * 100
         resistance_gap_pct = (resistance - latest_price) / latest_price * 100
@@ -162,104 +93,7 @@ def stock_analyzer(symbols):
             return "✅ No immediate support/resistance barrier risk."
         else:
             return "\n".join(alerts)  # return just a string
-
-    
-    def suggest_option_strategy(final_signal, latest_price, vix_level, confidence_percent, support, resistance):
-        strike_step = 10
-        atm = round(latest_price / strike_step) * strike_step
-        spread_width = 20
-        vix_display = f"{vix_level:.2f}" if vix_level is not None else "N/A"
-    
-        support_gap_pct = (latest_price - support) / latest_price * 100
-        resistance_gap_pct = (resistance - latest_price) / latest_price * 100
-    
-        near_support = 0 <= support_gap_pct < 2
-        near_resistance = 0 <= resistance_gap_pct < 2
-    
-        strong_conf = confidence_percent >= 70
-        moderate_conf = 50 <= confidence_percent < 70
-        low_conf = confidence_percent < 50
-    
-        suggestion = ""
-        strategy_type = "Wait"
-    
-        if 'Bullish' in final_signal:
-            if near_resistance:
-                suggestion = (
-                    f"⚠️ Price is near resistance ({resistance_gap_pct:.2f}%) — risky to go long.\n"
-                    f"👉 Wait for breakout or use tight SL.\n"
-                    f"📈 Confidence: {confidence_percent}%"
-                )
-                strategy_type = "Wait"
-            elif strong_conf:
-                suggestion = (
-                    f"💡 **Bull Call Spread** (High Confidence)\n"
-                    f"👉 Buy {atm} CE, Sell {atm + spread_width} CE\n"
-                    f"🎯 Target: 2–5 day swing\n"
-                    f"📈 Confidence: {confidence_percent}%"
-                )
-                strategy_type = "Swing"
-            elif moderate_conf:
-                suggestion = (
-                    f"💡 **Moderate Bull Spread**\n"
-                    f"👉 Buy {atm + 10} CE, Sell {atm + 30} CE\n"
-                    f"⚠️ Medium Confidence: {confidence_percent}%, use tight SL"
-                )
-                strategy_type = "Intraday/Swing"
-            else:
-                suggestion = (
-                    f"⚠️ Weak Bullish Bias ({confidence_percent}%)\n"
-                    f"👉 Suggest: Intraday scalps or wait"
-                )
-                strategy_type = "Scalp"
-    
-        elif 'Bearish' in final_signal:
-            if near_support:
-                suggestion = (
-                    f"⚠️ Price is near support ({support_gap_pct:.2f}%) — risky to short.\n"
-                    f"👉 Wait for breakdown confirmation.\n"
-                    f"📉 Confidence: {confidence_percent}%"
-                )
-                strategy_type = "Wait"
-            elif strong_conf:
-                suggestion = (
-                    f"💡 **Bear Put Spread** (High Confidence)\n"
-                    f"👉 Buy {atm} PE, Sell {atm - spread_width} PE\n"
-                    f"📉 Confidence: {confidence_percent}%"
-                )
-                strategy_type = "Swing"
-            elif moderate_conf:
-                suggestion = (
-                    f"💡 **Moderate Bear Spread**\n"
-                    f"👉 Buy {atm - 10} PE, Sell {atm - 30} PE\n"
-                    f"⚠️ Confidence: {confidence_percent}%, use SL"
-                )
-                strategy_type = "Intraday/Swing"
-            else:
-                suggestion = (
-                    f"⚠️ Weak Bearish Bias ({confidence_percent}%)\n"
-                    f"👉 Suggest: Avoid fresh shorts, wait for breakdown"
-                )
-                strategy_type = "Scalp"
-    
-        elif 'Neutral' in final_signal:
-            if vix_level and vix_level >= 20 and strong_conf:
-                suggestion = (
-                    f"💡 **Iron Condor** (High Volatility)\n"
-                    f"👉 Sell {atm + 50} CE & {atm - 50} PE\n"
-                    f"🎯 Benefit: Theta decay\n"
-                    f"📊 Confidence: {confidence_percent}%"
-                )
-                strategy_type = "Range Positional"
-            else:
-                suggestion = (
-                    f"🔍 Neutral bias — {confidence_percent}%\n"
-                    f"👉 Suggest: Wait for breakout or use range-bound strategy"
-                )
-                strategy_type = "Wait"
-    
-        return suggestion, strategy_type
-    
+    # Define Candlesticks
     def detect_candlestick_patterns(df):
         df = df.copy()
         body = abs(df['Close'] - df['Open'])
@@ -343,78 +177,85 @@ def stock_analyzer(symbols):
             (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2) &
             high_volume
         )
+    
         return df
-
+    # Compute Indicators
     def compute_indicators(df):
         close = df['Close']
         high = df['High']
         low = df['Low']
+        
+        # Momentum
         df['RSI'] = RSIIndicator(close).rsi()
         macd_obj = MACD(close)
         df['MACD'] = macd_obj.macd()
         df['MACD_Signal'] = macd_obj.macd_signal()
+    
+        # Trend indicators
         df['EMA20'] = EMAIndicator(close, 20).ema_indicator()
         df['EMA50'] = EMAIndicator(close, 50).ema_indicator()
         df['EMA200'] = EMAIndicator(close, 200).ema_indicator()
-        df['OBV'] = OnBalanceVolumeIndicator(close, df['Volume']).on_balance_volume()
+        df['ADX'] = ADXIndicator(high, low, close).adx()
+    
+        # Volatility
         bb = BollingerBands(close)
         df['BB_High'] = bb.bollinger_hband()
         df['BB_Low'] = bb.bollinger_lband()
         df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
-        df['ADX'] = ADXIndicator(high, low, close).adx()
-        df = compute_supertrend(df)
-        df = compute_stoch_rsi(df)
-        df = compute_vwap(df)
-        df = detect_candlestick_patterns(df)
+    
+        # Volume
+        df['OBV'] = OnBalanceVolumeIndicator(close, df['Volume']).on_balance_volume()
+    
+        # Custom indicators
+        df = compute_supertrend(df)  # Your Supertrend function
+        df = compute_vwap(df)        # Your VWAP function
+        df = detect_candlestick_patterns(df)  # Already customized
+    
         return df
-    
+    # Detect Trend Reversal
     def detect_trend_reversal(df):
-        rsi = df['RSI']
-        obv = df['OBV']
-    
-        # Ensure enough data points
-        if len(rsi) < 5 or len(obv) < 5:
-            return "Not enough data"
-    
-        recent_rsi = rsi.tail(5)
-        recent_obv = obv.tail(5)
-    
-        # RSI conditions
-        rsi_bull_cond = (recent_rsi.iloc[-1] > recent_rsi.iloc[-2]) and (recent_rsi.min() < 35)
-        rsi_bear_cond = (recent_rsi.iloc[-1] < recent_rsi.iloc[-2]) and (recent_rsi.max() > 65)
-    
-        # OBV conditions
-        obv_bull_cond = (recent_obv.iloc[-1] > recent_obv.iloc[-2])
-        obv_bear_cond = (recent_obv.iloc[-1] < recent_obv.iloc[-2])
-    
-        # Combine conditions
-        if rsi_bull_cond and obv_bull_cond:
-            return "📈 Possible Bullish Reversal"
-        elif rsi_bear_cond and obv_bear_cond:
-            return "📉 Possible Bearish Reversal"
-        else:
-            return "⚖️ No clear reversal signal"
-    def detect_gap(df_1d):
-        if len(df_1d) < 2:
-            return "Not enough data"
-        prev_close = df_1d['Close'].iloc[-2]
-        today_open = df_1d['Open'].iloc[-1]
-        gap_pct = (today_open - prev_close) / prev_close * 100
-        if abs(gap_pct) > 1:
-            return f"⚠️ {gap_pct:.2f}% gap at open — exercise caution!"
-        else:
-            return "No significant gap."
-   
-    def clean_yf_data(df):
-        if df.empty:
-            return None
-        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
-        if 'Close' not in df.columns:
-            return None
-        df.dropna(subset=['Close'], inplace=True)
-        return df if not df.empty else None
+    rsi = df['RSI']
+    obv = df['OBV']
 
-    # Download VIX + Nifty trend
+    if len(rsi) < 5 or len(obv) < 5:
+        return "Not enough data"
+
+    recent_rsi = rsi.tail(5)
+    recent_obv = obv.tail(5)
+
+    rsi_bull_cond = (recent_rsi.iloc[-1] > recent_rsi.iloc[-2]) and (recent_rsi.min() < 35)
+    rsi_bear_cond = (recent_rsi.iloc[-1] < recent_rsi.iloc[-2]) and (recent_rsi.max() > 65)
+
+    obv_bull_cond = (recent_obv.iloc[-1] > recent_obv.iloc[-2])
+    obv_bear_cond = (recent_obv.iloc[-1] < recent_obv.iloc[-2])
+
+    if rsi_bull_cond and obv_bull_cond:
+        return "📈 Possible Bullish Reversal"
+    elif rsi_bear_cond and obv_bear_cond:
+        return "📉 Possible Bearish Reversal"
+    else:
+        return "⚖️ No clear reversal signal"
+    # Gap at opning
+    def detect_gap(df_1d):
+    if len(df_1d) < 2:
+        return "Not enough data"
+    prev_close = df_1d['Close'].iloc[-2]
+    today_open = df_1d['Open'].iloc[-1]
+    gap_pct = (today_open - prev_close) / prev_close * 100
+    if abs(gap_pct) > 1:
+        return f"⚠️ {gap_pct:.2f}% gap at open — exercise caution!"
+    else:
+        return "No significant gap."
+    # Data Cleaning 
+    def clean_yf_data(df):
+    if df.empty:
+        return None
+    df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+    if 'Close' not in df.columns:
+        return None
+    df.dropna(subset=['Close'], inplace=True)
+    return df if not df.empty else None
+    # === Download VIX and Nifty data ===
     try:
         df_vix = clean_yf_data(yf.download('^INDIAVIX', period='1d', interval='1m'))
         latest_vix = df_vix['Close'].iloc[-1] if df_vix is not None else None
@@ -426,7 +267,7 @@ def stock_analyzer(symbols):
     except:
         latest_vix = None
         vix_comment = "N/A"
-
+    
     try:
         df_nifty = clean_yf_data(yf.download('^NSEI', period='7d'))
         nifty_trend = (
@@ -434,30 +275,30 @@ def stock_analyzer(symbols):
         ) if df_nifty is not None else "N/A"
     except:
         nifty_trend = "N/A"
-  
     for symbol in symbols:
         st.header(f"🔍 Analyzing {symbol}")
-
+    
+        # Download timeframes: 4H, 1D, and 1W (replacing 1H)
         df_4h = clean_yf_data(yf.download(symbol, period='6mo', interval='4h'))
         df_1d = clean_yf_data(yf.download(symbol, period='6mo', interval='1d'))
-        df_1h = clean_yf_data(yf.download(symbol, period='3mo', interval='1h'))
-        support_1h, resistance_1h = calc_support_resistance(df_1h['Close'], window=40)
-        support_4h, resistance_4h = calc_support_resistance(df_4h['Close'], window=60)
-        support_1d, resistance_1d = calc_support_resistance(df_1d['Close'], window=120)
-        sentiment_score = fetch_sentiment_from_newsapi(symbol)
-        if sentiment_score is None:
-            sentiment_score = 0.0  # default neutral
-
-        if df_4h is None or df_1d is None or df_1h is None:
+        df_1w = clean_yf_data(yf.download(symbol, period='2y', interval='1wk'))
+    
+        # Check for missing or invalid data
+        if df_4h is None or df_1d is None or df_1w is None:
             st.warning(f"⚠️ Insufficient or invalid data for {symbol}. Skipping...")
             continue
-
+    
+        # Calculate support/resistance on appropriate timeframes
+        support_4h, resistance_4h = calc_support_resistance(df_4h['Close'], window=60)
+        support_1d, resistance_1d = calc_support_resistance(df_1d['Close'], window=120)
+        support_1w, resistance_1w = calc_support_resistance(df_1w['Close'], window=40)
+    
+        # Compute indicators
         df_4h = compute_indicators(df_4h)
         df_1d = compute_indicators(df_1d)
-        gap_info = detect_gap(df_1d)
-        st.info(gap_info)
-        df_1h = compute_indicators(df_1h)
-             
+        df_1w = compute_indicators(df_1w)
+
+        latest_price = df_1d['Close'].iloc[-1]
         def analyze_df(df, tf_name):
             latest = df.iloc[-1]
             close = df['Close']
@@ -467,24 +308,19 @@ def stock_analyzer(symbols):
             atr_pct = (latest['ATR'] / latest['Close']) * 100
             rsi_bull = 65 if atr_pct > 3 else 60
             rsi_bear = 35 if atr_pct > 3 else 40
-
+        
             if latest['RSI'] > rsi_bull:
                 clues.append(f'RSI Bullish (>{rsi_bull})')
             elif latest['RSI'] < rsi_bear:
                 clues.append(f'RSI Bearish (<{rsi_bear})')
             else:
                 clues.append('RSI Neutral')
-
+        
             if latest['MACD'] > latest['MACD_Signal']:
                 clues.append('MACD Bullish')
             elif latest['MACD'] < latest['MACD_Signal']:
                 clues.append('MACD Bearish')
-                
-            macd_cross_bars = np.where((df['MACD'] > df['MACD_Signal']) != (df['MACD'].shift(1) > df['MACD_Signal'].shift(1)))[0]
-            if len(macd_cross_bars) > 0:
-                bars_since_cross = len(df) - macd_cross_bars[-1]
-                clues.append(f'MACD crossover {bars_since_cross} bars ago')
-                
+
             atr_mean = df['ATR'].tail(10).mean()
             if latest['ATR'] > 1.2 * atr_mean:
                 clues.append('High Volatility')
@@ -492,14 +328,7 @@ def stock_analyzer(symbols):
                 clues.append('Low Volatility')
             else:
                 clues.append('Normal Volatility')    
-                
-          
-            if latest['Close'] > df['Close'].iloc[-2]:
-                clues.append('Last candle bullish close')
-            else:
-                clues.append('Last candle bearish close')
-
-           
+                      
             recent_range = close.tail(10).max() - close.tail(10).min()
             if recent_range / latest['Close'] < 0.02:
                 clues.append('Consolidation zone (<2% range)')
@@ -510,29 +339,29 @@ def stock_analyzer(symbols):
                 clues.append('Weak Trend (ADX < 20)')
             else:
                 clues.append('Moderate Trend (ADX 20-25)')
-
+        
             if latest['Close'] > latest['EMA20'] > latest['EMA50']:
                 clues.append('EMA Bullish alignment')
             elif latest['Close'] < latest['EMA20'] < latest['EMA50']:
                 clues.append('EMA Bearish alignment')
-
+        
             bb_width = latest['BB_High'] - latest['BB_Low']
             bb_mean = (df['BB_High'] - df['BB_Low']).tail(10).mean()
             if bb_width < 0.7 * bb_mean:
                 clues.append('BB Squeeze (Potential breakout)')
-
+        
             if latest['OBV'] > df['OBV'].iloc[-5]:
                 clues.append('OBV Up')
             else:
                 clues.append('OBV Down')
-
+        
             div = detect_divergence(close.tail(5), df['RSI'].tail(5))
             if div:
                 clues.append(div)
-
+        
             support, resistance = calc_support_resistance(close)
             clues.append(f"Support ~{support:.2f}, Resistance ~{resistance:.2f}")
-
+        
             bull = sum('Bullish' in c or 'Up' in c for c in clues)
             bear = sum('Bearish' in c or 'Down' in c for c in clues)
             if bull > bear:
@@ -541,18 +370,22 @@ def stock_analyzer(symbols):
                 signal = f"Bearish (hold ~{3 if tf_name == '4H' else 7} bars)"
             else:
                 signal = f"Neutral (hold ~{3 if tf_name == '4H' else 7} bars)"
+            
             # Swing / Positional signals
             swing_msg = ""
             positional_msg = ""
-            if latest['Supertrend_dir'] == 1 and latest['StochRSI_K'] > 50:
-                swing_msg = "🚀 Swing Bullish Signal (Supertrend + StochRSI)"
-            elif latest['Supertrend_dir'] == -1 and latest['StochRSI_K'] < 50:
-                swing_msg = "⚠️ Swing Bearish Signal (Supertrend + StochRSI)"
-        
+    
+            # Remove StochRSI logic
+            if latest['Supertrend_dir'] == 1:
+                swing_msg = "🚀 Swing Bullish Signal (Supertrend)"
+            elif latest['Supertrend_dir'] == -1:
+                swing_msg = "⚠️ Swing Bearish Signal (Supertrend)"
+            
             if latest['Close'] > latest['VWAP']:
                 positional_msg = "✅ Positional Bullish Bias (Price above VWAP)"
             else:
                 positional_msg = "🔻 Positional Bearish Bias (Price below VWAP)"
+        
             # Price Action Confirmation Logic
             if latest['Close'] > resistance * 1.002:  # Breakout with at least 0.2% margin
                 clues.append("✅ Price action confirms breakout above resistance")
@@ -567,80 +400,80 @@ def stock_analyzer(symbols):
                 clues.append("📊 Volume supports move — strong breakout potential")
             else:
                 clues.append("⚠️ Weak volume — move may not sustain")
-
             clues.append(swing_msg)
             clues.append(positional_msg)
-
+        
             return clues, signal, support, resistance
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
-        clues_1h, signal_1h, support_1h, resistance_1h = analyze_df(df_1h, '1H')
+        clues_1w, signal_1w, support_1w, resistance_1w = analyze_df(df_1w, '1W')
         latest_price = df_1d['Close'].iloc[-1]
-        # === Decide trade type based on signal alignment first ===
-        def suggest_trade_timing(signal_1h, signal_4h, signal_1d):
-            if 'Bullish' in signal_1h and 'Bullish' in signal_4h and 'Bullish' in signal_1d:
+
+        # === Decide trade type based on signal alignment ===
+        def suggest_trade_timing(signal_1w, signal_1d, signal_4h):
+            if 'Bullish' in signal_1w and 'Bullish' in signal_1d and 'Bullish' in signal_4h:
                 return "🧭 Positional Buy Setup (>5 days)", "Positional"
-            elif 'Bullish' in signal_1h and 'Bullish' in signal_4h:
+            elif 'Bullish' in signal_1d and 'Bullish' in signal_4h:
                 return "🔁 Swing Trade Opportunity (2–5 days)", "Swing"
-            elif 'Bullish' in signal_1h:
-                return "🕐 Intraday Long Bias", "Intraday"
-            elif 'Bearish' in signal_1h and 'Bearish' in signal_4h and 'Bearish' in signal_1d:
+            elif 'Bullish' in signal_4h:
+                return "🕐 Short-Term Upside Bias", "Short-Term"
+            elif 'Bearish' in signal_1w and 'Bearish' in signal_1d and 'Bearish' in signal_4h:
                 return "🧭 Positional Short Setup (>5 days)", "Positional"
-            elif 'Bearish' in signal_1h and 'Bearish' in signal_4h:
+            elif 'Bearish' in signal_1d and 'Bearish' in signal_4h:
                 return "🔁 Swing Short Opportunity (2–5 days)", "Swing"
-            elif 'Bearish' in signal_1h:
-                return "🕐 Intraday Short Bias", "Intraday"
+            elif 'Bearish' in signal_4h:
+                return "🕐 Short-Term Downside Bias", "Short-Term"
             else:
                 return "⚠️ Unclear — Better to Wait", "Neutral"
-
-        trade_description, trade_level = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
-        # === Suggest Trade Type First (so we can pick proper S/R window)
-        trade_type, strategy_type = suggest_trade_timing(signal_1h, signal_4h, signal_1d)
         
-        # Assign support/resistance based on strategy type
-        if strategy_type == "Intraday":
-            sr_support, sr_resistance = support_1h, resistance_1h
-        elif strategy_type == "Swing":
+        # Suggest trade based on signals
+        trade_description, strategy_type = suggest_trade_timing(signal_1w, signal_1d, signal_4h)
+        
+        # Select support/resistance based on strategy type
+        if strategy_type == "Short-Term":
             sr_support, sr_resistance = support_4h, resistance_4h
-        else:  # Positional or fallback
+        elif strategy_type == "Swing":
             sr_support, sr_resistance = support_1d, resistance_1d
-
+        else:  # Positional or fallback
+            sr_support, sr_resistance = support_1w, resistance_1w
         # === Count clues ===
-        bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_1h + clues_4h + clues_1d)
-        bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_1h + clues_4h + clues_1d)
+        bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
+        bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_4h + clues_1d + clues_1w)
         total_clues = bull_clues + bear_clues
+        
         confidence = (abs(bull_clues - bear_clues) / total_clues) if total_clues else 0
         confidence_percent = round(confidence * 100)
+        
         # === Weighted Signal Score ===
         score = 0
-        if 'Bullish' in signal_1d: score += 0.6
-        if 'Bullish' in signal_4h: score += 0.3
-        if 'Bullish' in signal_1h: score += 0.1
-        if 'Bearish' in signal_1d: score -= 0.6
-        if 'Bearish' in signal_4h: score -= 0.3
-        if 'Bearish' in signal_1h: score -= 0.1
+        if 'Bullish' in signal_1w: score += 0.6
+        if 'Bullish' in signal_1d: score += 0.3
+        if 'Bullish' in signal_4h: score += 0.1
+        if 'Bearish' in signal_1w: score -= 0.6
+        if 'Bearish' in signal_1d: score -= 0.3
+        if 'Bearish' in signal_4h: score -= 0.1
         
         bias = 'Bullish' if score > 0 else 'Bearish' if score < 0 else 'Neutral'
         confidence = round(abs(score) * 100)
         
+        # === Adjust Confidence Based on Proximity to Support/Resistance ===
         resistance_gap_pct = (sr_resistance - latest_price) / latest_price * 100
         support_gap_pct = (latest_price - sr_support) / latest_price * 100
         
         if 0 <= resistance_gap_pct <= 1.5:
-            confidence -= 10  # Near resistance — risky
+            confidence -= 10  # Price is near resistance — risky for entry
         if 0 <= support_gap_pct <= 1.5:
-            confidence += 10  # Near support — chance of bounce
-        
-        # === OBV Trend Confirmation (still from 1D)
+            confidence += 10  # Price is near support — possible bounce
+        # === OBV Trend Confirmation (from 1D) ===
         obv_trend = df_1d['OBV'].iloc[-1] - df_1d['OBV'].iloc[-5]
+        
         if obv_trend > 0 and latest_price > sr_resistance:
-            confidence += 10  # Breakout with volume
+            confidence += 10  # ✅ Breakout with increasing volume (strong confirmation)
         elif obv_trend < 0 and latest_price >= sr_resistance:
-            confidence -= 10  # Price up but OBV falling
+            confidence -= 10  # ⚠️ Price at/above resistance but OBV dropping (divergence)
         
-        # Clamp confidence
+        # Clamp confidence within [0, 100]
         confidence = max(0, min(100, confidence))
-        
         # === Final Signal
         if confidence >= 70:
             final = f"💹 Ultra Strong {bias} (Confidence: {confidence}%)"
@@ -648,21 +481,25 @@ def stock_analyzer(symbols):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
-      
-        st.subheader(f"{symbol} 1H")
-        for c in clues_1h:
-            st.write(f"🔹 {c}")
-        st.write(f"➡ 1H Signal: {signal_1h}")
         
         st.subheader(f"{symbol} 4H")
         for c in clues_4h:
             st.write(f"🔹 {c}")
         st.write(f"➡ 4H Signal: {signal_4h}")
-
+        
         st.subheader(f"{symbol} 1D")
         for c in clues_1d:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1D Signal: {signal_1d}")
+        
+        st.subheader(f"{symbol} 1W")
+        for c in clues_1w:
+            st.write(f"🔹 {c}")
+        st.write(f"➡ 1W Signal: {signal_1w}")
+        
+        # Show final recommendation
+        st.markdown(f"## 🧠 Final Analysis: {final}")
+        st.markdown(f"### 🧭 Suggested Trade: {trade_description}")
 
         st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
         st.markdown(f"**🧮 Clue Breakdown**: Bullish clues = {bull_clues}, Bearish clues = {bear_clues}")
@@ -676,13 +513,13 @@ def stock_analyzer(symbols):
             st.warning(f"⚠️ {final} but Nifty down — caution advised!")
         elif 'Bearish' in final and nifty_trend == 'up':
             st.warning(f"⚠️ {final} but Nifty up — caution advised!")
-        st.subheader("📊 Candlestick Patterns (1H)")
-        st.markdown(candlestick_summary(df_1h))
         st.subheader("📊 Candlestick Patterns (4H)")
         st.markdown(candlestick_summary(df_4h))
         st.subheader("📊 Candlestick Patterns (1D)")
         st.markdown(candlestick_summary(df_1d))
-
+        st.subheader("📊 Candlestick Patterns (1W)")
+        st.markdown(candlestick_summary(df_1w))
+        
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
@@ -690,27 +527,15 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        strategy_suggestion, strategy_type = suggest_option_strategy(
-            final_signal=final,
-            latest_price=latest_price,
-            vix_level=vix_for_strategy,
-            confidence_percent=confidence_percent,
-            support=sr_support,
-            resistance=sr_resistance
-        )
-      
-        st.subheader("💡 Option Strategy Suggestion")
-        st.markdown(strategy_suggestion)
-        st.subheader("📏 Support/Resistance Alert")
-        
-        st.markdown("**🔵 For Positional Trade:**")
-        st.markdown(support_resistance_alert(latest_price, support_1d, resistance_1d))
-        
+
         st.markdown("**🟢 For Swing Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_4h, resistance_4h))
-        
-        st.markdown("**🟠 For Intraday Trade:**")
-        st.markdown(support_resistance_alert(latest_price, support_1h, resistance_1h))
+
+        st.markdown("**🔵 For Positional Trade:**")
+        st.markdown(support_resistance_alert(latest_price, support_1d, resistance_1d))
+                
+        st.markdown("**🟠 For Long Trade:**")
+        st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
 
 def candlestick_summary(df):
     recent = df.iloc[-1]
