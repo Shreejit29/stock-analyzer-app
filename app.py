@@ -651,7 +651,7 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
-        for symbol in clean_symbols:
+        for symbol in symbols:
           if summary_only:
               summary = generate_summary(
                   symbol, latest_price, signal_4h, signal_1d, signal_1w,
