@@ -246,8 +246,8 @@ def stock_analyzer(symbols):
             return f"⚠️ {gap_pct:.2f}% gap at open — exercise caution!"
         else:
             return "No significant gap."
-        # Data Cleaning 
-        def clean_yf_data(df):
+    # Data Cleaning 
+    def clean_yf_data(df):
         if df.empty:
             return None
         df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
