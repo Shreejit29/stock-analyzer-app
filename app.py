@@ -6,63 +6,68 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
+def get_manual_summary_whatsapp(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w,
+                                final, trade_description, latest_vix, nifty_trend,
+                                resistance_gap_pct, support_gap_pct, bull_clues, bear_clues):
 
-def get_manual_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w,
-                       final, trade_description, latest_vix, nifty_trend,
-                       resistance_gap_pct, support_gap_pct, bull_clues, bear_clues):
-    
-    lines = []
-    lines.append(f"🔍 **{symbol.upper()} Summary**")
+    lines = [
+        f"📊 *{symbol.upper()} Trade Summary*",
+        f"🔎 Final Signal: {final}",
+        f"🎯 Trade Type: {trade_description}",
+        f"🟢 Bullish Clues: {bull_clues} | 🔴 Bearish Clues: {bear_clues}"
+    ]
 
-    # Core signal
-    lines.append(f"📊 **Final Signal:** {final}")
-    lines.append(f"🧭 **Suggested Trade:** {trade_description}")
-    
-    # Clue strength
-    lines.append(f"📌 Bullish Clues: {bull_clues}, Bearish Clues: {bear_clues}")
-     # Trap warnings from clues
+    # Trap Alerts
     trap_lines = []
     for tf, clues in zip(['4H', '1D', '1W'], [clues_4h, clues_1d, clues_1w]):
         traps = [c for c in clues if 'Trap' in c or ('Breakout' in c and '⚠️' in c) or '🚨' in c]
         if traps:
-            trap_lines.append(f"🔻 **Possible Trap Detected on {tf}**")
+            trap_lines.append(f"🚨 *Trap on {tf}*")
             for t in traps:
                 trap_lines.append(f"• {t}")
     if trap_lines:
-        lines.append("🚨 **Trap Alerts:**")
+        lines.append("🚨 *Trap Alerts*")
         lines.extend(trap_lines)
     else:
-        lines.append("✅ No obvious trap signals detected.")
-    # Volume risk
-    weak_volume_clue = any("Weak volume" in c for c in clues_4h + clues_1d + clues_1w)
-    if weak_volume_clue:
-        lines.append("⚠️ **Caution:** Weak volume detected — move may not sustain.")
+        lines.append("✅ No trap signals.")
 
-    # Support/Resistance risk
+    # Volume
+    if any("Weak volume" in c for c in clues_4h + clues_1d + clues_1w):
+        lines.append("⚠️ Low volume — move may not sustain.")
+
+    # Resistance/Support
     if 0 <= resistance_gap_pct <= 1.5:
-        lines.append("⚠️ **Note:** Price is near resistance — potential rejection risk.")
+        lines.append("⚠️ Near resistance — rejection possible.")
     if 0 <= support_gap_pct <= 1.5:
-        lines.append("⚠️ **Note:** Price is near support — may bounce or break.")
+        lines.append("⚠️ Near support — breakdown risk.")
 
-    # VIX and Nifty
+    # Market Conditions
     if float(latest_vix) < 12:
-        lines.append("⚠️ **Market Risk:** Very low VIX — market complacency risk.")
-    if "down" in nifty_trend.lower() and "Bullish" in final:
-        lines.append("⚠️ **Caution:** Nifty trend is down — broad market may not support bullish setups.")
+        lines.append("⚠️ VIX <12 — complacency risk.")
+    if "down" in nifty_trend.lower() and "Bullish" in final_signal:
+        lines.append("⚠️ Nifty down — bullish trades risky.")
 
-    # Summary logic
-    if "Ultra Strong Bullish" in final:
-        lines.append("✅ **Bias:** Strong upside potential across all timeframes.")
-    elif "Moderate Bullish" in final:
-        lines.append("🔼 **Bias:** Mild bullish edge, but watch for volume or resistance zones.")
-    elif "Moderate Bearish" in final:
-        lines.append("🔽 **Bias:** Weakness in price action — avoid long positions.")
-    elif "Ultra Strong Bearish" in final:
-        lines.append("⛔ **Bias:** Strong downside risk — consider short setups.")
+    # Final Advice
+    lines.append("📈 *Trade Direction*")
+    if "Bullish" in final:
+        if resistance_gap_pct <= 1.5:
+            lines.append("🔼 Long possible — wait for breakout.")
+        elif trap_lines:
+            lines.append("⚠️ Caution: Bull trap risk.")
+        else:
+            lines.append("✅ Long bias supported.")
+    elif "Bearish" in final:
+        if support_gap_pct <= 1.5:
+            lines.append("🔽 Short possible — wait for breakdown.")
+        elif trap_lines:
+            lines.append("⚠️ Caution: Bear trap risk.")
+        else:
+            lines.append("✅ Short bias supported.")
     else:
-        lines.append("⚖️ **Bias:** Mixed or unclear — better to wait for clarity.")
+        lines.append("⏳ Unclear setup — avoid trade.")
 
-    return "\n\n".join(lines)
+    return "\n".join(lines)
+
 
 # Define Supertrend
 def compute_supertrend(df, period=10, multiplier=3):
