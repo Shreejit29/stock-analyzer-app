@@ -676,7 +676,10 @@ def stock_analyzer(symbols, summary_only=False):
                 "Final Signal": final,
                 "Action Plan": action_note
             })
-            st.markdown(summary_table)
+            if summary_table:
+              st.markdown("### 📋 Final Summary Table (All Stocks)")
+              st.table(summary_table)  
+  
             
         else:
           st.subheader(f"{symbol} 4H")
