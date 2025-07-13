@@ -717,9 +717,6 @@ def stock_analyzer(symbols, summary_only=False):
               st.subheader("🔍 Extra Smart Signal Clues")
               for line in additional_signals:
                   st.write(line)
-
- 
-
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
