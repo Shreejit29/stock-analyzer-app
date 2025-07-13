@@ -649,10 +649,17 @@ def stock_analyzer(symbols, summary_only=False):
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
         if summary_only:
-          summary, action_note = generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d, clues_1w,
+          summary = generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d, clues_1w,
                      final, trade_description, latest_vix, nifty_trend,
                      sr_support, sr_resistance,traps_4h, traps_1d, traps_1w)
           st.markdown(summary)
+          # Action suggestion
+          if "Bullish" in final:
+              action_note = f"✅ Look for breakout above {sr_resistance} with volume."
+          elif "Bearish" in final:
+              action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
+          else:
+              action_note = "⏸️ Wait — no strong directional confirmation."
           summary_table.append({
             "Symbol": symbol.upper(),
             "Trade Type": trade_description,
