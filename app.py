@@ -6,6 +6,44 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
+import openai
+
+
+# Set your API key securely (place in secrets.toml or env var)
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
+def get_gpt_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w, final_signal, suggestion, vix, nifty_trend):
+    prompt = f"""
+        You are a professional trading assistant. Based on the following multi-timeframe signals for {symbol}, write a short trading summary:
+        
+        • Timeframe clues and signals (4H, 1D, 1W)
+        • Final signal and confidence
+        • Suggested trade type
+        • Warn if volume is weak, price is near resistance/support, or if VIX/Nifty trend adds risk
+        
+        Data:
+        4H Clues: {clues_4h}
+        4H Signal: {signal_4h}
+        1D Clues: {clues_1d}
+        1D Signal: {signal_1d}
+        1W Clues: {clues_1w}
+        1W Signal: {signal_1w}
+        Final Signal: {final_signal}
+        Suggested Trade: {suggestion}
+        VIX: {vix}, Nifty Trend: {nifty_trend}
+            """
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=350,
+            temperature=0.4
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"❌ GPT Error: {e}"
+
 # Define Supertrend
 def compute_supertrend(df, period=10, multiplier=3):
     hl2 = (df['High'] + df['Low']) / 2
@@ -590,6 +628,17 @@ def stock_analyzer(symbols):
                 
         st.markdown("**🟠 For Long Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
+        summary = get_gpt_summary(
+            symbol,
+            clues_4h, signal_4h,
+            clues_1d, signal_1d,
+            clues_1w, signal_1w,
+            final, trade_description,
+            vix_value, nifty_trend
+        )
+        
+        st.subheader("🧠 GPT Summary Suggestion")
+        st.success(summary)
 
 def candlestick_summary(df):
     recent = df.iloc[-1]
