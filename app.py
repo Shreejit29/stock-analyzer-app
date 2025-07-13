@@ -671,7 +671,7 @@ def stock_analyzer(symbols, summary_only=False):
           markdown_table = "| Symbol | Price | Trade Type | Final Signal | Action Plan |\n"
           markdown_table += "|--------|-------------|-------------|---------------|--------------|\n"
           for row in summary_table:
-            markdown_table += f"| {row['Symbol']} | {row['Symbol']} | {row['Trade Type']} | {row['Final Signal']} | {row['Action Plan']} |\n"
+            markdown_table += f"| {row['Symbol']} | {row['Price']} | {row['Trade Type']} | {row['Final Signal']} | {row['Action Plan']} |\n"
           st.markdown(markdown_table)
 
         else:
