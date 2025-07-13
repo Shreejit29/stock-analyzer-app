@@ -247,30 +247,39 @@ def stock_analyzer(symbols):
         else:
             return "No significant gap."
     def detect_trap_signals(df, support, resistance):
-        traps = []
-        close = df['Close']
-        volume = df['Volume']
-        latest = df.iloc[-1]
-    
-        # Bull Trap: breakout failed
-        if close.iloc[-2] < resistance < close.iloc[-1]:
-            if close.iloc[-1] < resistance:  # Didn't hold above resistance
-                traps.append("🚨 Bull Trap: Resistance breakout failed")
-    
-        # Bear Trap: breakdown reversed
-        if close.iloc[-2] > support > close.iloc[-1]:
-            if close.iloc[-1] > support:  # Didn't hold below support
-                traps.append("🚨 Bear Trap: Support breakdown reversed")
-    
-        # Weak Volume Breakout
-        recent_vol = volume.tail(5).mean()
-        if close.iloc[-1] > resistance * 1.002 and volume.iloc[-1] < recent_vol:
-            traps.append("⚠️ Weak Volume Breakout: Possible bull trap")
-    
-        if close.iloc[-1] < support * 0.998 and volume.iloc[-1] < recent_vol:
-            traps.append("⚠️ Weak Volume Breakdown: Possible bear trap")
-    
-        return traps
+    traps = []
+    latest = df.iloc[-1]
+    prev = df.iloc[-2]
+
+    # === Bull Trap: Price broke resistance but failed to hold and fell back
+    if (
+        prev['Close'] < resistance and
+        latest['Close'] > resistance and
+        latest['Close'] < resistance * 1.005 and
+        latest['Volume'] < df['Volume'].tail(5).mean()
+    ):
+        traps.append("⚠️ Potential Bull Trap — Weak breakout above resistance with low volume")
+
+    # === Bear Trap: Price broke support but reversed back up
+    if (
+        prev['Close'] > support and
+        latest['Close'] < support and
+        latest['Close'] > support * 0.995 and
+        latest['Volume'] < df['Volume'].tail(5).mean()
+    ):
+        traps.append("⚠️ Potential Bear Trap — Breakdown below support failed to hold")
+
+    # === Fakeout After Candlestick Reversal (e.g. Piercing Line but no follow-through)
+    if latest['Piercing_Line'] or latest['Bullish_Engulfing']:
+        if latest['Close'] < prev['Close']:
+            traps.append("⚠️ Bullish candlestick but no follow-through — possible fakeout")
+
+    if latest['Dark_Cloud_Cover'] or latest['Bearish_Engulfing']:
+        if latest['Close'] > prev['Close']:
+            traps.append("⚠️ Bearish candlestick but price moved up — fake bearish signal")
+
+    return traps
+
     # Data Cleaning 
     def clean_yf_data(df):
         if df.empty:
@@ -386,7 +395,9 @@ def stock_analyzer(symbols):
         
             support, resistance = calc_support_resistance(close)
             clues.append(f"Support ~{support:.2f}, Resistance ~{resistance:.2f}")
-        
+            trap_clues = detect_trap_signals(df, support, resistance)
+            clues.extend(trap_clues)
+
             bull = sum('Bullish' in c or 'Up' in c for c in clues)
             bear = sum('Bearish' in c or 'Down' in c for c in clues)
             if bull > bear:
@@ -427,11 +438,7 @@ def stock_analyzer(symbols):
                 clues.append("⚠️ Weak volume — move may not sustain")
             clues.append(swing_msg)
             clues.append(positional_msg)
-            support, resistance = calc_support_resistance(close)
-            clues.append(f"Support ~{support:.2f}, Resistance ~{resistance:.2f}")
-            # 🔍 Add trap detection
-            trap_clues = detect_trap_signals(df, support, resistance)
-            clues.extend(trap_clues)
+
             return clues, signal, support, resistance
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
