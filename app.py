@@ -431,7 +431,7 @@ def stock_analyzer(symbols):
                 clues.append("⚠️ No strong price action confirmation above resistance")
             recent_vol = df['Volume'].tail(5).mean()
             breakout_vol_confirmed = latest['Volume'] > 1.5 * recent_vol
-            
+   
             if breakout_vol_confirmed:
                 clues.append("📊 Volume supports move — strong breakout potential")
             else:
