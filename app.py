@@ -642,7 +642,7 @@ def stock_analyzer(symbols):
             bear_clues=bear_clues
         )
 
-st.markdown(summary)
+        st.markdown(summary)
 
 
 def candlestick_summary(df):
