@@ -6,6 +6,9 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
+from io import BytesIO
+import openpyxl  # For reading Excel files (automatically used by Pandas)
+import xlsxwriter  # For writing Excel files with formatting
 def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d, clues_1w,
                      final, trade_description, latest_vix, nifty_trend,
                      sr_support, sr_resistance,traps_4h, traps_1d, traps_1w):
