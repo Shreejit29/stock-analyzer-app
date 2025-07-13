@@ -716,7 +716,7 @@ def stock_analyzer(symbols):
             symbol,
             signal_4h, signal_1d, signal_1w,
             clues_4h, clues_1d, clues_1w,
-            final_signal, trade_description,
+            final, trade_description,
             latest_vix, nifty_trend,
             sr_support, sr_resistance, latest_price,
             traps_4h, traps_1d, traps_1w
