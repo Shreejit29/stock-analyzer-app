@@ -646,86 +646,86 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
-
-        st.subheader(f"{symbol} 4H")
-        for c in clues_4h:
-            st.write(f"🔹 {c}")
-        st.write(f"➡ 4H Signal: {signal_4h}")
-        
-        st.subheader(f"{symbol} 1D")
-        for c in clues_1d:
-            st.write(f"🔹 {c}")
-        st.write(f"➡ 1D Signal: {signal_1d}")
-        
-        st.subheader(f"{symbol} 1W")
-        for c in clues_1w:
-            st.write(f"🔹 {c}")
-        st.write(f"➡ 1W Signal: {signal_1w}")
-
-        # Show final recommendation
-        st.markdown(f"## 🧠 Final Analysis: {final}")
-        st.markdown(f"### 🧭 Suggested Trade: {trade_description}")
-
-        # st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
-        st.markdown(f"**🧮 Clue Breakdown**: Bullish clues = {bull_clues}, Bearish clues = {bear_clues}")
-        st.progress(confidence)  # Confidence as a visual progress bar
-        st.subheader("📢 Final Signal")
-        st.success(final)
-     
-        if latest_vix and latest_vix > 20:
-            st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
-        if 'Bullish' in final and nifty_trend == 'down':
-            st.warning(f"⚠️ {final} but Nifty down — caution advised!")
-        elif 'Bearish' in final and nifty_trend == 'up':
-            st.warning(f"⚠️ {final} but Nifty up — caution advised!")
-        st.subheader("📊 Candlestick Patterns (4H)")
-        st.markdown(candlestick_summary(df_4h))
-        st.subheader("📊 Candlestick Patterns (1D)")
-        st.markdown(candlestick_summary(df_1d))
-        st.subheader("📊 Candlestick Patterns (1W)")
-        st.markdown(candlestick_summary(df_1w))
-       
-
-        vix_for_strategy = latest_vix if latest_vix is not None else 0
-        nifty_change_pct = None
-        if df_nifty is not None and not df_nifty.empty:
-            nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
-        warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
-        st.subheader("⚠️ Market Risk Warnings")
-        st.markdown(warnings_text)
+       if summary_only:
+            summary = generate_summary(
+                symbol,
+                latest_price,
+                signal_4h, signal_1d, signal_1w,
+                clues_4h, clues_1d, clues_1w,
+                final_signal, suggestion,
+                latest_vix, nifty_trend,
+                sr_support, sr_resistance,
+                traps_4h, traps_1d, traps_1w
+            )
+            st.markdown(summary)
+        else:
+          st.subheader(f"{symbol} 4H")
+          for c in clues_4h:
+              st.write(f"🔹 {c}")
+          st.write(f"➡ 4H Signal: {signal_4h}")
+          
+          st.subheader(f"{symbol} 1D")
+          for c in clues_1d:
+              st.write(f"🔹 {c}")
+          st.write(f"➡ 1D Signal: {signal_1d}")
+          
+          st.subheader(f"{symbol} 1W")
+          for c in clues_1w:
+              st.write(f"🔹 {c}")
+          st.write(f"➡ 1W Signal: {signal_1w}")
   
-        st.markdown("**🟢 For Swing Trade:**")
-        st.markdown(support_resistance_alert(latest_price, support_4h, resistance_4h))
+          # Show final recommendation
+          st.markdown(f"## 🧠 Final Analysis: {final}")
+          st.markdown(f"### 🧭 Suggested Trade: {trade_description}")
+  
+          # st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
+          st.markdown(f"**🧮 Clue Breakdown**: Bullish clues = {bull_clues}, Bearish clues = {bear_clues}")
+          st.progress(confidence)  # Confidence as a visual progress bar
+          st.subheader("📢 Final Signal")
+          st.success(final)
+       
+          if latest_vix and latest_vix > 20:
+              st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
+          if 'Bullish' in final and nifty_trend == 'down':
+              st.warning(f"⚠️ {final} but Nifty down — caution advised!")
+          elif 'Bearish' in final and nifty_trend == 'up':
+              st.warning(f"⚠️ {final} but Nifty up — caution advised!")
+          st.subheader("📊 Candlestick Patterns (4H)")
+          st.markdown(candlestick_summary(df_4h))
+          st.subheader("📊 Candlestick Patterns (1D)")
+          st.markdown(candlestick_summary(df_1d))
+          st.subheader("📊 Candlestick Patterns (1W)")
+          st.markdown(candlestick_summary(df_1w))
+         
+  
+          vix_for_strategy = latest_vix if latest_vix is not None else 0
+          nifty_change_pct = None
+          if df_nifty is not None and not df_nifty.empty:
+              nifty_change_pct = (df_nifty['Close'].iloc[-1] - df_nifty['Close'].iloc[0]) / df_nifty['Close'].iloc[0] * 100
+          warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
+          st.subheader("⚠️ Market Risk Warnings")
+          st.markdown(warnings_text)
+    
+          st.markdown("**🟢 For Swing Trade:**")
+          st.markdown(support_resistance_alert(latest_price, support_4h, resistance_4h))
+  
+          st.markdown("**🔵 For Positional Trade:**")
+          st.markdown(support_resistance_alert(latest_price, support_1d, resistance_1d))
+                  
+          st.markdown("**🟠 For Short term Trade:**")
+          st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
+          additional_signals = generate_additional_signals(
+              clues_4h, clues_1d, clues_1w,
+              latest_price, sr_support, sr_resistance,
+              confidence_percent
+          )
+          
+          if additional_signals:
+              st.subheader("🔍 Extra Smart Signal Clues")
+              for line in additional_signals:
+                  st.write(line)
 
-        st.markdown("**🔵 For Positional Trade:**")
-        st.markdown(support_resistance_alert(latest_price, support_1d, resistance_1d))
-                
-        st.markdown("**🟠 For Short term Trade:**")
-        st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
-        additional_signals = generate_additional_signals(
-            clues_4h, clues_1d, clues_1w,
-            latest_price, sr_support, sr_resistance,
-            confidence_percent
-        )
-        
-        if additional_signals:
-            st.subheader("🔍 Extra Smart Signal Clues")
-            for line in additional_signals:
-                st.write(line)
-
-        st.markdown("📤 **WhatsApp-Friendly Summary**")
-        if summary_only:
-          summary = generate_summary(
-            symbol, latest_price, signal_4h, signal_1d, signal_1w,
-            clues_4h, clues_1d, clues_1w,
-            final, trade_description,
-            latest_vix, nifty_trend,
-            sr_support, sr_resistance,
-            traps_4h, traps_1d, traps_1w
-        )
-          st.markdown(summary)
-          return
-
+ 
 
 def candlestick_summary(df):
     recent = df.iloc[-1]
