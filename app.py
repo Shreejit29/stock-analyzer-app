@@ -677,29 +677,29 @@ def stock_analyzer(symbols, summary_only=False):
                 "Action Plan": action_note
             })
     
-    # ✅ Render once — after loop is complete
-    if summary_only and summary_table:
-        st.markdown("### 📋 Final Summary Table (Copy-Friendly)\n")
-        markdown_table = "| Symbol | Price | Trade Type | Final Signal | Action Plan |\n"
-        markdown_table += "|--------|-------------|-------------|---------------|--------------|\n"
-        for row in summary_table:
-            markdown_table += f"| {row['Symbol']} | {row['Price']} | {row['Trade Type']} | {row['Final Signal']} | {row['Action Plan']} |\n"
-        st.markdown(markdown_table)
-    
-        # Save to Excel
-        df_summary = pd.DataFrame(summary_table)
-        excel_buffer = BytesIO()
-        with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
-            df_summary.to_excel(writer, index=False, sheet_name="Summary")
-        excel_buffer.seek(0)
-    
-        st.download_button(
-            label="📥 Download Summary as Excel",
-            data=excel_buffer,
-            file_name="stock_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="summary_download_excel"
-        )
+          # ✅ Render once — after loop is complete
+          if summary_only and summary_table:
+              st.markdown("### 📋 Final Summary Table (Copy-Friendly)\n")
+              markdown_table = "| Symbol | Price | Trade Type | Final Signal | Action Plan |\n"
+              markdown_table += "|--------|-------------|-------------|---------------|--------------|\n"
+              for row in summary_table:
+                  markdown_table += f"| {row['Symbol']} | {row['Price']} | {row['Trade Type']} | {row['Final Signal']} | {row['Action Plan']} |\n"
+              st.markdown(markdown_table)
+          
+              # Save to Excel
+              df_summary = pd.DataFrame(summary_table)
+              excel_buffer = BytesIO()
+              with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+                  df_summary.to_excel(writer, index=False, sheet_name="Summary")
+              excel_buffer.seek(0)
+          
+              st.download_button(
+                  label="📥 Download Summary as Excel",
+                  data=excel_buffer,
+                  file_name="stock_summary.xlsx",
+                  mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  key="summary_download_excel"
+              )
 
         else:
           st.subheader(f"{symbol} 4H")
