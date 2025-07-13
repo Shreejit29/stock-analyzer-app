@@ -683,16 +683,16 @@ def stock_analyzer(symbols):
                 
         st.markdown("**🟠 For Long Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
-      additional_signals = generate_additional_signals(
-          clues_4h, clues_1d, clues_1w,
-          latest_price, sr_support, sr_resistance,
-          confidence_percent
-      )
-      
-      if additional_signals:
-          st.subheader("🔍 Extra Smart Signal Clues")
-          for line in additional_signals:
-              st.write(line)
+        additional_signals = generate_additional_signals(
+            clues_4h, clues_1d, clues_1w,
+            latest_price, sr_support, sr_resistance,
+            confidence_percent
+        )
+        
+        if additional_signals:
+            st.subheader("🔍 Extra Smart Signal Clues")
+            for line in additional_signals:
+                st.write(line)
 
         # === Manual WhatsApp-Friendly Summary
         whatsapp_summary = get_manual_summary_whatsapp(
