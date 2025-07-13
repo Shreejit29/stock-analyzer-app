@@ -485,9 +485,7 @@ def stock_analyzer(symbols):
             recent_range = close.tail(10).max() - close.tail(10).min()
             if recent_range / latest['Close'] < 0.02:
                 clues.append('Consolidation zone (<2% range)')
-            obv_div = detect_obv_divergence(df)
-            if obv_div:
-                clues.append(obv_div)
+            
 
             if latest['ADX'] > 25:
                 clues.append('Strong Trend (ADX > 25)')
@@ -510,7 +508,9 @@ def stock_analyzer(symbols):
                 clues.append('OBV Up')
             else:
                 clues.append('OBV Down')
-        
+            obv_div = detect_obv_divergence(df)
+            if obv_div:
+                clues.append(obv_div)
             div = detect_divergence(close.tail(5), df['RSI'].tail(5))
             if div:
                 clues.append(div)
