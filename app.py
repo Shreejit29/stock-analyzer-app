@@ -634,7 +634,7 @@ def stock_analyzer(symbols):
             clues_1d, signal_1d,
             clues_1w, signal_1w,
             final, trade_description,
-            vix_value, nifty_trend
+            latest_vix, nifty_trend
         )
         
         st.subheader("🧠 GPT Summary Suggestion")
