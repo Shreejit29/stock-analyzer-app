@@ -131,7 +131,7 @@ def compute_vwap(df):
     df['VWAP'] = (df['Volume'] * (df['High'] + df['Low'] + df['Close']) / 3).cumsum() / df['Volume'].cumsum()
     return df
 # Main Program
-def stock_analyzer(symbols):
+def stock_analyzer(symbols, summary_only=False):
     def detect_divergence(price, indicator):
         if len(price) < 3 or len(indicator) < 3:
             return None
@@ -646,7 +646,7 @@ def stock_analyzer(symbols):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
-        """
+
         st.subheader(f"{symbol} 4H")
         for c in clues_4h:
             st.write(f"🔹 {c}")
@@ -661,7 +661,7 @@ def stock_analyzer(symbols):
         for c in clues_1w:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1W Signal: {signal_1w}")
-        """
+
         # Show final recommendation
         st.markdown(f"## 🧠 Final Analysis: {final}")
         st.markdown(f"### 🧭 Suggested Trade: {trade_description}")
@@ -685,7 +685,7 @@ def stock_analyzer(symbols):
         st.subheader("📊 Candlestick Patterns (1W)")
         st.markdown(candlestick_summary(df_1w))
        
-        """
+
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
@@ -693,7 +693,7 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-        """
+  
         st.markdown("**🟢 For Swing Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_4h, resistance_4h))
 
@@ -723,6 +723,9 @@ def stock_analyzer(symbols):
         
         st.markdown("📤 **WhatsApp-Friendly Summary**")
         st.code(summary)
+        if summary_only:
+          st.markdown(whatsapp_summary(...))  # Only WhatsApp Summary
+          return
 
 
 def candlestick_summary(df):
@@ -781,7 +784,15 @@ st.title("📈 Stock Analyzer")
 symbols = st.text_input("Enter stock symbols (comma-separated):", "INFY.NS").split(",")
 
 # Run analysis
-if st.button("Run Analysis"):
-    clean_symbols = [s.strip() for s in symbols]
-    stock_analyzer(clean_symbols)
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("📊 Full Analysis"):
+        clean_symbols = [s.strip() for s in symbols]
+        stock_analyzer(clean_symbols)
+
+with col2:
+    if st.button("📩 WhatsApp Summary Only"):
+        clean_symbols = [s.strip() for s in symbols]
+        stock_analyzer(clean_symbols, summary_only=True)
 
