@@ -659,8 +659,8 @@ def stock_analyzer(symbols, summary_only=False):
                      sr_support, sr_resistance,traps_4h, traps_1d, traps_1w)
           st.markdown(summary)
           if summary_table:
-          st.markdown("### 📋 Final Summary Table (All Stocks)")
-          st.table(summary_table)
+            st.markdown("### 📋 Final Summary Table (All Stocks)")
+            st.table(summary_table)
         else:
           st.subheader(f"{symbol} 4H")
           for c in clues_4h:
