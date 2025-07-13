@@ -560,12 +560,7 @@ def stock_analyzer(symbols, summary_only=False):
 
             clues.append(swing_msg)
             clues.append(positional_msg)
-            summary_table.append({
-            "Symbol": symbol.upper(),
-            "Trade Type": trade_description,
-            "Final Signal": final,
-            "Action Plan": action_note
-            })
+
 
             return clues, signal, support, resistance
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
@@ -658,6 +653,12 @@ def stock_analyzer(symbols, summary_only=False):
                      final, trade_description, latest_vix, nifty_trend,
                      sr_support, sr_resistance,traps_4h, traps_1d, traps_1w)
           st.markdown(summary)
+          summary_table.append({
+            "Symbol": symbol.upper(),
+            "Trade Type": trade_description,
+            "Final Signal": final,
+            "Action Plan": action_note
+            })
           if summary_table:
             st.markdown("### 📋 Final Summary Table (All Stocks)")
             st.table(summary_table)
