@@ -314,6 +314,16 @@ def stock_analyzer(symbols):
         df = detect_candlestick_patterns(df)  # Already customized
     
         return df
+    def detect_obv_divergence(df):
+      price_change = df['Close'].iloc[-1] - df['Close'].iloc[-5]
+      obv_change = df['OBV'].iloc[-1] - df['OBV'].iloc[-5]
+  
+      if price_change > 0 and obv_change < 0:
+          return "⚠️ Bearish OBV Divergence — Price rising but volume not supporting"
+      elif price_change < 0 and obv_change > 0:
+          return "⚠️ Bullish OBV Divergence — Price falling but OBV rising"
+      return None
+
     # Detect Trend Reversal
     def detect_trend_reversal(df):
         rsi = df['RSI']
@@ -468,7 +478,10 @@ def stock_analyzer(symbols):
             recent_range = close.tail(10).max() - close.tail(10).min()
             if recent_range / latest['Close'] < 0.02:
                 clues.append('Consolidation zone (<2% range)')
-               
+            obv_div = detect_obv_divergence(df)
+            if obv_div:
+                clues.append(obv_div)
+
             if latest['ADX'] > 25:
                 clues.append('Strong Trend (ADX > 25)')
             elif latest['ADX'] < 20:
