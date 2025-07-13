@@ -647,16 +647,9 @@ def stock_analyzer(symbols, summary_only=False):
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
         if summary_only:
-          summary = generate_summary(
-          symbol,
-          latest_price,
-          signal_4h, signal_1d, signal_1w,
-          clues_4h, clues_1d, clues_1w,
-          final_signal, suggestion,
-          latest_vix, nifty_trend,
-          sr_support, sr_resistance,
-          traps_4h, traps_1d, traps_1w
-          )
+          summary = generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d, clues_1w,
+                     final, trade_description, latest_vix, nifty_trend,
+                     sr_support, sr_resistance,traps_4h, traps_1d, traps_1w)
           st.markdown(summary)
         else:
           st.subheader(f"{symbol} 4H")
