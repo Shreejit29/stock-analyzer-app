@@ -45,7 +45,7 @@ def get_manual_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1
         lines.append("🔼 **Bias:** Mild bullish edge, but watch for volume or resistance zones.")
     elif "Moderate Bearish" in final:
         lines.append("🔽 **Bias:** Weakness in price action — avoid long positions.")
-    elif "Ultra Strong Bearish" in final_:
+    elif "Ultra Strong Bearish" in final:
         lines.append("⛔ **Bias:** Strong downside risk — consider short setups.")
     else:
         lines.append("⚖️ **Bias:** Mixed or unclear — better to wait for clarity.")
