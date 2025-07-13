@@ -666,14 +666,14 @@ def stock_analyzer(symbols, summary_only=False):
             "Trade Type": trade_description,
             "Final Signal": final,
             "Action Plan": action_note})
-# Markdown-friendly, copyable table
-st.markdown("### 📋 Final Summary Table (Copy-Friendly)\n")
-markdown_table = "| Symbol | Trade Type | Final Signal | Action Plan |\n"
-markdown_table += "|--------|-------------|---------------|--------------|\n"
-for row in summary_table:
-    markdown_table += f"| {row['Symbol']} | {row['Trade Type']} | {row['Final Signal']} | {row['Action Plan']} |\n"
-
-st.markdown(markdown_table)
+            # Markdown-friendly, copyable table
+            st.markdown("### 📋 Final Summary Table (Copy-Friendly)\n")
+            markdown_table = "| Symbol | Trade Type | Final Signal | Action Plan |\n"
+            markdown_table += "|--------|-------------|---------------|--------------|\n"
+            for row in summary_table:
+                markdown_table += f"| {row['Symbol']} | {row['Trade Type']} | {row['Final Signal']} | {row['Action Plan']} |\n"
+            
+            st.markdown(markdown_table)
 
         else:
           st.subheader(f"{symbol} 4H")
