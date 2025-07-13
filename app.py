@@ -674,8 +674,8 @@ def stock_analyzer(symbols, summary_only=False):
             summary_table.append({
                 "Symbol": symbol.upper(),
                 "Price": latest_price,
-                "Bull Clue" : bull_clues
-                "Bear Clue" : bear_clues
+                "Bull Clue" : bull_clues,
+                "Bear Clue" : bear_clues,
                 "Trade Type": trade_description,
                 "Final Signal": final,
                 "Action Plan": action_note
