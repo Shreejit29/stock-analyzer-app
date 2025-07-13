@@ -686,14 +686,14 @@ def stock_analyzer(symbols, summary_only=False):
           
           # Rewind the buffer
           excel_buffer.seek(0)
-          
-          # Download button
           st.download_button(
               label="📥 Download Summary as Excel",
               data=excel_buffer,
               file_name="stock_summary.xlsx",
-              mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              key="summary_download_excel"  # ✅ Unique key
           )
+
         else:
           st.subheader(f"{symbol} 4H")
           for c in clues_4h:
