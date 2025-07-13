@@ -8,38 +8,34 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 from openai import OpenAI
 
+# Initialize OpenAI client with API key
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-response = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-reply = response.choices[0].message.content
-
+# Function to get GPT-generated trading summary
 def get_gpt_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w, final_signal, suggestion, latest_vix, nifty_trend):
     prompt = f"""
-        You are a professional trading assistant. Based on the following multi-timeframe signals for {symbol}, write a short trading summary:
-        
-        • Timeframe clues and signals (4H, 1D, 1W)
-        • Final signal and confidence
-        • Suggested trade type
-        • Warn if volume is weak, price is near resistance/support, or if VIX/Nifty trend adds risk
-        
-        Data:
-        4H Clues: {clues_4h}
-        4H Signal: {signal_4h}
-        1D Clues: {clues_1d}
-        1D Signal: {signal_1d}
-        1W Clues: {clues_1w}
-        1W Signal: {signal_1w}
-        Final Signal: {final_signal}
-        Suggested Trade: {suggestion}
-        VIX: {latest_vix}, Nifty Trend: {nifty_trend}
-            """
+    You are a professional trading assistant. Based on the following multi-timeframe signals for {symbol}, write a short trading summary:
+    
+    • Timeframe clues and signals (4H, 1D, 1W)
+    • Final signal and confidence
+    • Suggested trade type
+    • Warn if volume is weak, price is near resistance/support, or if VIX/Nifty trend adds risk
+    
+    Data:
+    4H Clues: {clues_4h}
+    4H Signal: {signal_4h}
+    1D Clues: {clues_1d}
+    1D Signal: {signal_1d}
+    1W Clues: {clues_1w}
+    1W Signal: {signal_1w}
+    Final Signal: {final_signal}
+    Suggested Trade: {suggestion}
+    VIX: {latest_vix}, Nifty Trend: {nifty_trend}
+    """
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",
+        response = client.chat.completions.create(
+            model="gpt-4o",  # or "gpt-3.5-turbo"
             messages=[{"role": "user", "content": prompt}],
             max_tokens=350,
             temperature=0.4
