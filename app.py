@@ -596,4 +596,4 @@ symbols = st.text_input("Enter stock symbols (comma-separated):", "INFY.NS").spl
 if st.button("Run Analysis"):
     clean_symbols = [s.strip() for s in symbols]
     stock_analyzer(clean_symbols)
-    display_sentiment_summary(clean_symbols) 
+
