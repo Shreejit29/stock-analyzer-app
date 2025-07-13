@@ -246,6 +246,31 @@ def stock_analyzer(symbols):
             return f"⚠️ {gap_pct:.2f}% gap at open — exercise caution!"
         else:
             return "No significant gap."
+    def detect_trap_signals(df, support, resistance):
+        traps = []
+        close = df['Close']
+        volume = df['Volume']
+        latest = df.iloc[-1]
+    
+        # Bull Trap: breakout failed
+        if close.iloc[-2] < resistance < close.iloc[-1]:
+            if close.iloc[-1] < resistance:  # Didn't hold above resistance
+                traps.append("🚨 Bull Trap: Resistance breakout failed")
+    
+        # Bear Trap: breakdown reversed
+        if close.iloc[-2] > support > close.iloc[-1]:
+            if close.iloc[-1] > support:  # Didn't hold below support
+                traps.append("🚨 Bear Trap: Support breakdown reversed")
+    
+        # Weak Volume Breakout
+        recent_vol = volume.tail(5).mean()
+        if close.iloc[-1] > resistance * 1.002 and volume.iloc[-1] < recent_vol:
+            traps.append("⚠️ Weak Volume Breakout: Possible bull trap")
+    
+        if close.iloc[-1] < support * 0.998 and volume.iloc[-1] < recent_vol:
+            traps.append("⚠️ Weak Volume Breakdown: Possible bear trap")
+    
+        return traps
     # Data Cleaning 
     def clean_yf_data(df):
         if df.empty:
@@ -402,12 +427,21 @@ def stock_analyzer(symbols):
                 clues.append("⚠️ Weak volume — move may not sustain")
             clues.append(swing_msg)
             clues.append(positional_msg)
-        
+            trap_clues = detect_trap_signals(df)
+            clues.extend(trap_clues)  # Merge trap signals into overall clues
+
             return clues, signal, support, resistance
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1w, signal_1w, support_1w, resistance_1w = analyze_df(df_1w, '1W')
         latest_price = df_1d['Close'].iloc[-1]
+        # Extract trap clues
+        def extract_traps(clues):
+            return [c for c in clues if 'Trap' in c or ('Breakout' in c and '⚠️' in c) or '🚨' in c]
+        
+        traps_4h = extract_traps(clues_4h)
+        traps_1d = extract_traps(clues_1d)
+        traps_1w = extract_traps(clues_1w)
 
         # === Decide trade type based on signal alignment ===
         def suggest_trade_timing(signal_1w, signal_1d, signal_4h):
@@ -519,7 +553,17 @@ def stock_analyzer(symbols):
         st.markdown(candlestick_summary(df_1d))
         st.subheader("📊 Candlestick Patterns (1W)")
         st.markdown(candlestick_summary(df_1w))
-        
+        # === Display trap alerts
+        if traps_4h or traps_1d or traps_1w:
+            st.subheader("🚨 Trap Signals Detected")
+            for tf, traps in zip(['4H', '1D', '1W'], [traps_4h, traps_1d, traps_1w]):
+                if traps:
+                    st.markdown(f"**{symbol} {tf}**")
+                    for t in traps:
+                        st.error(f"🔻 {t}")
+        else:
+            st.info("✅ No obvious trap signals detected.")
+
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
