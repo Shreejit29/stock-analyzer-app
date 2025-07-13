@@ -8,14 +8,14 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 
 def get_manual_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w,
-                       final_, trade_description, latest_vix, nifty_trend,
+                       final, trade_description, latest_vix, nifty_trend,
                        resistance_gap_pct, support_gap_pct, bull_clues, bear_clues):
     
     lines = []
     lines.append(f"🔍 **{symbol.upper()} Summary**")
 
     # Core signal
-    lines.append(f"📊 **Final Signal:** {finall}")
+    lines.append(f"📊 **Final Signal:** {final}")
     lines.append(f"🧭 **Suggested Trade:** {trade_description}")
     
     # Clue strength
