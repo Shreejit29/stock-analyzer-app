@@ -646,7 +646,7 @@ def stock_analyzer(symbols):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
-        
+        """
         st.subheader(f"{symbol} 4H")
         for c in clues_4h:
             st.write(f"🔹 {c}")
@@ -661,12 +661,12 @@ def stock_analyzer(symbols):
         for c in clues_1w:
             st.write(f"🔹 {c}")
         st.write(f"➡ 1W Signal: {signal_1w}")
-        
+        """
         # Show final recommendation
         st.markdown(f"## 🧠 Final Analysis: {final}")
         st.markdown(f"### 🧭 Suggested Trade: {trade_description}")
 
-        st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
+        # st.info(f"VIX: {latest_vix:.2f} ({vix_comment}), Nifty Trend: {nifty_trend}")
         st.markdown(f"**🧮 Clue Breakdown**: Bullish clues = {bull_clues}, Bearish clues = {bear_clues}")
         st.progress(confidence)  # Confidence as a visual progress bar
         st.subheader("📢 Final Signal")
@@ -685,7 +685,7 @@ def stock_analyzer(symbols):
         st.subheader("📊 Candlestick Patterns (1W)")
         st.markdown(candlestick_summary(df_1w))
        
-
+        """
         vix_for_strategy = latest_vix if latest_vix is not None else 0
         nifty_change_pct = None
         if df_nifty is not None and not df_nifty.empty:
@@ -693,14 +693,14 @@ def stock_analyzer(symbols):
         warnings_text = generate_market_warnings(latest_vix, nifty_change_pct)     
         st.subheader("⚠️ Market Risk Warnings")
         st.markdown(warnings_text)
-
+        """
         st.markdown("**🟢 For Swing Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_4h, resistance_4h))
 
         st.markdown("**🔵 For Positional Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_1d, resistance_1d))
                 
-        st.markdown("**🟠 For Long Trade:**")
+        st.markdown("**🟠 For Short term Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
         additional_signals = generate_additional_signals(
             clues_4h, clues_1d, clues_1w,
