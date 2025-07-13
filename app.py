@@ -692,13 +692,13 @@ def stock_analyzer(symbols, summary_only=False):
                   with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
                       df_summary.to_excel(writer, index=False, sheet_name="Summary")
                   excel_buffer.seek(0)
-              
+                  key = f"summary_download_excel_{len(summary_table)}"
                   st.download_button(
                       label="📥 Download Summary as Excel",
                       data=excel_buffer,
                       file_name="stock_summary.xlsx",
                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                      key="summary_download_excel"
+                      key=key  # ✅ Unique if number of stocks change
                   )
 
         else:
