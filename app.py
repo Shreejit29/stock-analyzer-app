@@ -714,7 +714,6 @@ def stock_analyzer(symbols, summary_only=False):
                 st.write(line)
 
         st.markdown("📤 **WhatsApp-Friendly Summary**")
-        st.code(summary)
         if summary_only:
           summary = generate_summary(
             symbol, latest_price, signal_4h, signal_1d, signal_1w,
@@ -783,16 +782,18 @@ st.title("📈 Stock Analyzer")
 # User input for stock symbols
 symbols = st.text_input("Enter stock symbols (comma-separated):", "INFY.NS").split(",")
 
-# Run analysis
+
+# Choose mode
 col1, col2 = st.columns(2)
+run_full = col1.button("🔍 Full Analysis")
+run_summary = col2.button("📤 WhatsApp Summary Only")
 
-with col1:
-    if st.button("📊 Full Analysis"):
-        clean_symbols = [s.strip() for s in symbols]
-        stock_analyzer(clean_symbols)
+clean_symbols = [s.strip() for s in symbols]
 
-with col2:
-    if st.button("📩 WhatsApp Summary Only"):
-        clean_symbols = [s.strip() for s in symbols]
-        stock_analyzer(clean_symbols, summary_only=True)
+if run_full:
+    stock_analyzer(clean_symbols, summary_only=False)
+
+if run_summary:
+    stock_analyzer(clean_symbols, summary_only=True)
+
 
