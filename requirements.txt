@@ -5,4 +5,5 @@ numpy
 ta
 feedparser
 scikit-learn
-
+openpyxl
+xlsxwriter
