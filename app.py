@@ -6,11 +6,15 @@ from ta.momentum import RSIIndicator
 from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
-import openai
+from openai import OpenAI
 
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Set your API key securely (place in secrets.toml or env var)
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+reply = response.choices[0].message.content
 
 def get_gpt_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w, final_signal, suggestion, latest_vix, nifty_trend):
     prompt = f"""
