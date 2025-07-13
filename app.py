@@ -323,6 +323,13 @@ def stock_analyzer(symbols):
       elif price_change < 0 and obv_change > 0:
           return "⚠️ Bullish OBV Divergence — Price falling but OBV rising"
       return None
+    def detect_volume_cluster(df):
+        recent_vol = df['Volume'].iloc[-1]
+        avg_vol = df['Volume'].iloc[-10:-1].mean()
+        price_range = df['High'].iloc[-1] - df['Low'].iloc[-1]
+        if recent_vol > 1.5 * avg_vol and price_range < df['Close'].iloc[-1] * 0.01:
+            return "🔍 Volume Cluster Detected — High activity in tight range (possible smart money)"
+        return None
 
     # Detect Trend Reversal
     def detect_trend_reversal(df):
@@ -551,6 +558,10 @@ def stock_analyzer(symbols):
                 clues.append("📊 Volume supports move — strong breakout potential")
             else:
                 clues.append("⚠️ Weak volume — move may not sustain")
+            vol_cluster = detect_volume_cluster(df)
+            if vol_cluster:
+                clues.append(vol_cluster)
+
             clues.append(swing_msg)
             clues.append(positional_msg)
 
