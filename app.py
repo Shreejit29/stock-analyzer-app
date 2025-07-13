@@ -68,6 +68,45 @@ def get_manual_summary_whatsapp(symbol, clues_4h, signal_4h, clues_1d, signal_1d
 
     return "\n".join(lines)
 
+def generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent):
+    lines = []
+
+    # 1. Breakout/Breakdown Strength
+    resistance_gap_pct = (sr_resistance - latest_price) / latest_price * 100
+    support_gap_pct = (latest_price - sr_support) / latest_price * 100
+
+    if latest_price > sr_resistance and resistance_gap_pct > 1.5 and 'OBV Up' in clues_4h + clues_1d:
+        lines.append("💥 Strong breakout above resistance (volume confirmed).")
+    elif latest_price < sr_support and support_gap_pct > 1.5 and 'OBV Down' in clues_4h + clues_1d:
+        lines.append("💥 Strong breakdown below support (volume confirmed).")
+
+    # 2. EMA Compression Zone
+    if 'EMA Bullish alignment' in clues_1d and 'EMA Bearish alignment' in clues_4h:
+        lines.append("📊 Compression zone — conflicting EMA signals across timeframes.")
+    elif 'EMA Bearish alignment' in clues_1d and 'EMA Bullish alignment' in clues_4h:
+        lines.append("📊 Possible squeeze — EMA conflict may cause breakout soon.")
+
+    # 3. Trend Confidence Boost
+    if 'Strong Trend' in clues_1d and 'OBV Up' in clues_1d and 'MACD Bullish' in clues_1d:
+        lines.append("🔒 Strong trend backed by volume and momentum.")
+
+    # 4. Trap Recovery
+    has_trap = any('Trap' in clue for clue in clues_4h + clues_1d + clues_1w)
+    if has_trap and 'MACD Bullish' in clues_1d and 'OBV Up' in clues_1d:
+        lines.append("🧲 Trap likely absorbed — recovery in progress.")
+
+    # 5. Trade Plan
+    if confidence_percent >= 70 and resistance_gap_pct > 2:
+        lines.append("🛒 Entry: Watch pullback above support.")
+        lines.append("🎯 Target: Next resistance / swing high.")
+        lines.append("🛡️ Risk Level: Moderate")
+    elif confidence_percent >= 70 and support_gap_pct < 1:
+        lines.append("🛑 Entry risky — too close to support. Avoid until breakout.")
+        lines.append("🛡️ Risk Level: High")
+    elif confidence_percent < 40:
+        lines.append("⚠️ Signal weak — wait for confirmation before trading.")
+
+    return lines
 
 # Define Supertrend
 def compute_supertrend(df, period=10, multiplier=3):
@@ -644,6 +683,17 @@ def stock_analyzer(symbols):
                 
         st.markdown("**🟠 For Long Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
+      additional_signals = generate_additional_signals(
+          clues_4h, clues_1d, clues_1w,
+          latest_price, sr_support, sr_resistance,
+          confidence_percent
+      )
+      
+      if additional_signals:
+          st.subheader("🔍 Extra Smart Signal Clues")
+          for line in additional_signals:
+              st.write(line)
+
         # === Manual WhatsApp-Friendly Summary
         whatsapp_summary = get_manual_summary_whatsapp(
             symbol,
