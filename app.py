@@ -651,48 +651,55 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
+         
         if summary_only:
-          summary = generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d, clues_1w,
-                     final, trade_description, latest_vix, nifty_trend,
-                     sr_support, sr_resistance,traps_4h, traps_1d, traps_1w)
-          st.markdown(summary)
-          # Action suggestion
-          if "Bullish" in final:
-              action_note = f"✅ Look for breakout above {sr_resistance} with volume."
-          elif "Bearish" in final:
-              action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
-          else:
-              action_note = "⏸️ Wait — no strong directional confirmation."
-          summary_table.append({
-            "Symbol": symbol.upper(),
-            "Price" : latest_price,
-            "Trade Type": trade_description,
-            "Final Signal": final,
-            "Action Plan": action_note})
-          # Markdown-friendly, copyable table
-          st.markdown("### 📋 Final Summary Table (Copy-Friendly)\n")
-          markdown_table = "| Symbol | Price | Trade Type | Final Signal | Action Plan |\n"
-          markdown_table += "|--------|-------------|-------------|---------------|--------------|\n"
-          for row in summary_table:
+            summary = generate_summary(
+                symbol, latest_price, signal_4h, signal_1d, signal_1w,
+                clues_4h, clues_1d, clues_1w, final, trade_description,
+                latest_vix, nifty_trend, sr_support, sr_resistance,
+                traps_4h, traps_1d, traps_1w
+            )
+            st.markdown(summary)
+    
+            # ✅ Append only — no rendering here
+            if "Bullish" in final:
+                action_note = f"✅ Look for breakout above {sr_resistance} with volume."
+            elif "Bearish" in final:
+                action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
+            else:
+                action_note = "⏸️ Wait — no strong directional confirmation."
+    
+            summary_table.append({
+                "Symbol": symbol.upper(),
+                "Price": latest_price,
+                "Trade Type": trade_description,
+                "Final Signal": final,
+                "Action Plan": action_note
+            })
+    
+    # ✅ Render once — after loop is complete
+    if summary_only and summary_table:
+        st.markdown("### 📋 Final Summary Table (Copy-Friendly)\n")
+        markdown_table = "| Symbol | Price | Trade Type | Final Signal | Action Plan |\n"
+        markdown_table += "|--------|-------------|-------------|---------------|--------------|\n"
+        for row in summary_table:
             markdown_table += f"| {row['Symbol']} | {row['Price']} | {row['Trade Type']} | {row['Final Signal']} | {row['Action Plan']} |\n"
-          st.markdown(markdown_table)
-          # Convert summary table to DataFrame
-          df_summary = pd.DataFrame(summary_table)
-          
-          # Save to Excel in memory
-          excel_buffer = BytesIO()
-          with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
-              df_summary.to_excel(writer, index=False, sheet_name="Summary")
-          
-          # Rewind the buffer
-          excel_buffer.seek(0)
-          st.download_button(
-              label="📥 Download Summary as Excel",
-              data=excel_buffer,
-              file_name="stock_summary.xlsx",
-              mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-              key="summary_download_excel"  # ✅ Unique key
-          )
+        st.markdown(markdown_table)
+    
+        # Save to Excel
+        df_summary = pd.DataFrame(summary_table)
+        excel_buffer = BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+            df_summary.to_excel(writer, index=False, sheet_name="Summary")
+        excel_buffer.seek(0)
+    
+        st.download_button(
+            label="📥 Download Summary as Excel",
+            data=excel_buffer,
+            file_name="stock_summary.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="summary_download_excel"
+        )
 
         else:
           st.subheader(f"{symbol} 4H")
