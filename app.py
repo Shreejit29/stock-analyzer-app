@@ -660,7 +660,9 @@ def stock_analyzer(symbols, summary_only=False):
                 traps_4h, traps_1d, traps_1w
             )
             st.markdown(summary)
-    
+            # Count clues
+            bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
+            bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_4h + clues_1d + clues_1w)
             # ✅ Append only — no rendering here
             if "Bullish" in final:
                 action_note = f"✅ Look for breakout above {sr_resistance} with volume."
@@ -672,6 +674,8 @@ def stock_analyzer(symbols, summary_only=False):
             summary_table.append({
                 "Symbol": symbol.upper(),
                 "Price": latest_price,
+                "Bull Clue" : bull_clues
+                "Bear Clue" : bear_clues
                 "Trade Type": trade_description,
                 "Final Signal": final,
                 "Action Plan": action_note
