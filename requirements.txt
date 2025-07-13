@@ -5,4 +5,4 @@ numpy
 ta
 feedparser
 scikit-learn
-openai
+openai==1.11.0
