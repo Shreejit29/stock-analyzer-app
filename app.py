@@ -35,7 +35,7 @@ def get_manual_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1
     # VIX and Nifty
     if float(latest_vix) < 12:
         lines.append("⚠️ **Market Risk:** Very low VIX — market complacency risk.")
-    if "down" in nifty_trend.lower() and "Bullish" in final_signal:
+    if "down" in nifty_trend.lower() and "Bullish" in final:
         lines.append("⚠️ **Caution:** Nifty trend is down — broad market may not support bullish setups.")
 
     # Summary logic
