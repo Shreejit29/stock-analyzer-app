@@ -30,7 +30,7 @@ def generate_summary(symbol, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d
     nifty_note = "⚠️ Nifty is trending down — caution on longs." if "down" in nifty_trend.lower() else ""
 
     # Action suggestion
-    if "Bullish" in finall:
+    if "Bullish" in final:
         action_note = f"✅ Look for breakout above {sr_resistance} with volume."
     elif "Bearish" in final:
         action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
