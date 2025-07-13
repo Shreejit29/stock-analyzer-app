@@ -662,6 +662,7 @@ def stock_analyzer(symbols, summary_only=False):
               action_note = "⏸️ Wait — no strong directional confirmation."
           summary_table.append({
             "Symbol": symbol.upper(),
+            "Price" : latest_price,
             "Trade Type": trade_description,
             "Final Signal": final,
             "Action Plan": action_note
