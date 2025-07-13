@@ -214,47 +214,47 @@ def stock_analyzer(symbols):
         return df
     # Detect Trend Reversal
     def detect_trend_reversal(df):
-    rsi = df['RSI']
-    obv = df['OBV']
-
-    if len(rsi) < 5 or len(obv) < 5:
-        return "Not enough data"
-
-    recent_rsi = rsi.tail(5)
-    recent_obv = obv.tail(5)
-
-    rsi_bull_cond = (recent_rsi.iloc[-1] > recent_rsi.iloc[-2]) and (recent_rsi.min() < 35)
-    rsi_bear_cond = (recent_rsi.iloc[-1] < recent_rsi.iloc[-2]) and (recent_rsi.max() > 65)
-
-    obv_bull_cond = (recent_obv.iloc[-1] > recent_obv.iloc[-2])
-    obv_bear_cond = (recent_obv.iloc[-1] < recent_obv.iloc[-2])
-
-    if rsi_bull_cond and obv_bull_cond:
-        return "📈 Possible Bullish Reversal"
-    elif rsi_bear_cond and obv_bear_cond:
-        return "📉 Possible Bearish Reversal"
-    else:
-        return "⚖️ No clear reversal signal"
+        rsi = df['RSI']
+        obv = df['OBV']
+    
+        if len(rsi) < 5 or len(obv) < 5:
+            return "Not enough data"
+    
+        recent_rsi = rsi.tail(5)
+        recent_obv = obv.tail(5)
+    
+        rsi_bull_cond = (recent_rsi.iloc[-1] > recent_rsi.iloc[-2]) and (recent_rsi.min() < 35)
+        rsi_bear_cond = (recent_rsi.iloc[-1] < recent_rsi.iloc[-2]) and (recent_rsi.max() > 65)
+    
+        obv_bull_cond = (recent_obv.iloc[-1] > recent_obv.iloc[-2])
+        obv_bear_cond = (recent_obv.iloc[-1] < recent_obv.iloc[-2])
+    
+        if rsi_bull_cond and obv_bull_cond:
+            return "📈 Possible Bullish Reversal"
+        elif rsi_bear_cond and obv_bear_cond:
+            return "📉 Possible Bearish Reversal"
+        else:
+            return "⚖️ No clear reversal signal"
     # Gap at opning
     def detect_gap(df_1d):
-    if len(df_1d) < 2:
-        return "Not enough data"
-    prev_close = df_1d['Close'].iloc[-2]
-    today_open = df_1d['Open'].iloc[-1]
-    gap_pct = (today_open - prev_close) / prev_close * 100
-    if abs(gap_pct) > 1:
-        return f"⚠️ {gap_pct:.2f}% gap at open — exercise caution!"
-    else:
-        return "No significant gap."
-    # Data Cleaning 
-    def clean_yf_data(df):
-    if df.empty:
-        return None
-    df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
-    if 'Close' not in df.columns:
-        return None
-    df.dropna(subset=['Close'], inplace=True)
-    return df if not df.empty else None
+        if len(df_1d) < 2:
+            return "Not enough data"
+        prev_close = df_1d['Close'].iloc[-2]
+        today_open = df_1d['Open'].iloc[-1]
+        gap_pct = (today_open - prev_close) / prev_close * 100
+        if abs(gap_pct) > 1:
+            return f"⚠️ {gap_pct:.2f}% gap at open — exercise caution!"
+        else:
+            return "No significant gap."
+        # Data Cleaning 
+        def clean_yf_data(df):
+        if df.empty:
+            return None
+        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+        if 'Close' not in df.columns:
+            return None
+        df.dropna(subset=['Close'], inplace=True)
+        return df if not df.empty else None
     # === Download VIX and Nifty data ===
     try:
         df_vix = clean_yf_data(yf.download('^INDIAVIX', period='1d', interval='1m'))
