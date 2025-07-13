@@ -8,6 +8,8 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 import openai
 
+
+# Set API key from Streamlit secrets
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def get_gpt_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w, final_signal, trade_description, latest_vix, nifty_trend):
@@ -32,13 +34,13 @@ VIX: {latest_vix}, Nifty Trend: {nifty_trend}
 """
 
     try:
-        response = openai.chat.completions.create(
-            model="gpt-4o",
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Or "gpt-4" if you're using GPT-4
             messages=[{"role": "user", "content": prompt}],
             max_tokens=350,
             temperature=0.4
         )
-        return response.choices[0].message.content.strip()
+        return response['choices'][0]['message']['content'].strip()
     except Exception as e:
         return f"❌ GPT Error: {e}"
 
