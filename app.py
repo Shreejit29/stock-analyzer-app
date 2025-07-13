@@ -20,7 +20,19 @@ def get_manual_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1
     
     # Clue strength
     lines.append(f"📌 Bullish Clues: {bull_clues}, Bearish Clues: {bear_clues}")
-
+     # Trap warnings from clues
+    trap_lines = []
+    for tf, clues in zip(['4H', '1D', '1W'], [clues_4h, clues_1d, clues_1w]):
+        traps = [c for c in clues if 'Trap' in c or ('Breakout' in c and '⚠️' in c) or '🚨' in c]
+        if traps:
+            trap_lines.append(f"🔻 **Possible Trap Detected on {tf}**")
+            for t in traps:
+                trap_lines.append(f"• {t}")
+    if trap_lines:
+        lines.append("🚨 **Trap Alerts:**")
+        lines.extend(trap_lines)
+    else:
+        lines.append("✅ No obvious trap signals detected.")
     # Volume risk
     weak_volume_clue = any("Weak volume" in c for c in clues_4h + clues_1d + clues_1w)
     if weak_volume_clue:
