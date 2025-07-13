@@ -8,7 +8,7 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d, clues_1w,
                      final, trade_description, latest_vix, nifty_trend,
-                     sr_support, sr_resistance, latest_price, traps_4h, traps_1d, traps_1w):
+                     sr_support, sr_resistance,traps_4h, traps_1d, traps_1w):
 
     # Count clues
     bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
