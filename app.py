@@ -7,6 +7,50 @@ from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands, AverageTrueRange
 
+def get_manual_summary(symbol, clues_4h, signal_4h, clues_1d, signal_1d, clues_1w, signal_1w,
+                       final_signal, trade_description, latest_vix, nifty_trend,
+                       resistance_gap_pct, support_gap_pct, bull_clues, bear_clues):
+    
+    lines = []
+    lines.append(f"🔍 **{symbol.upper()} Summary**")
+
+    # Core signal
+    lines.append(f"📊 **Final Signal:** {final_signal}")
+    lines.append(f"🧭 **Suggested Trade:** {trade_description}")
+    
+    # Clue strength
+    lines.append(f"📌 Bullish Clues: {bull_clues}, Bearish Clues: {bear_clues}")
+
+    # Volume risk
+    weak_volume_clue = any("Weak volume" in c for c in clues_4h + clues_1d + clues_1w)
+    if weak_volume_clue:
+        lines.append("⚠️ **Caution:** Weak volume detected — move may not sustain.")
+
+    # Support/Resistance risk
+    if 0 <= resistance_gap_pct <= 1.5:
+        lines.append("⚠️ **Note:** Price is near resistance — potential rejection risk.")
+    if 0 <= support_gap_pct <= 1.5:
+        lines.append("⚠️ **Note:** Price is near support — may bounce or break.")
+
+    # VIX and Nifty
+    if float(latest_vix) < 12:
+        lines.append("⚠️ **Market Risk:** Very low VIX — market complacency risk.")
+    if "down" in nifty_trend.lower() and "Bullish" in final_signal:
+        lines.append("⚠️ **Caution:** Nifty trend is down — broad market may not support bullish setups.")
+
+    # Summary logic
+    if "Ultra Strong Bullish" in final_signal:
+        lines.append("✅ **Bias:** Strong upside potential across all timeframes.")
+    elif "Moderate Bullish" in final_signal:
+        lines.append("🔼 **Bias:** Mild bullish edge, but watch for volume or resistance zones.")
+    elif "Moderate Bearish" in final_signal:
+        lines.append("🔽 **Bias:** Weakness in price action — avoid long positions.")
+    elif "Ultra Strong Bearish" in final_signal:
+        lines.append("⛔ **Bias:** Strong downside risk — consider short setups.")
+    else:
+        lines.append("⚖️ **Bias:** Mixed or unclear — better to wait for clarity.")
+
+    return "\n\n".join(lines)
 
 # Define Supertrend
 def compute_supertrend(df, period=10, multiplier=3):
@@ -583,7 +627,23 @@ def stock_analyzer(symbols):
                 
         st.markdown("**🟠 For Long Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
-      
+        summary = get_manual_summary(
+            symbol='tatamotors.ns',
+            clues_4h=clues_4h, signal_4h=signal_4h,
+            clues_1d=clues_1d, signal_1d=signal_1d,
+            clues_1w=clues_1w, signal_1w=signal_1w,
+            final_signal=final_signal,
+            trade_description=trade_description,
+            latest_vix=latest_vix,
+            nifty_trend=nifty_trend,
+            resistance_gap_pct=resistance_gap_pct,
+            support_gap_pct=support_gap_pct,
+            bull_clues=bull_clues,
+            bear_clues=bear_clues
+        )
+
+st.markdown(summary)
+
 
 def candlestick_summary(df):
     recent = df.iloc[-1]
