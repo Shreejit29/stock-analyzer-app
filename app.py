@@ -676,15 +676,15 @@ def stock_analyzer(symbols, summary_only=False):
           for row in summary_table:
             markdown_table += f"| {row['Symbol']} | {row['Price']} | {row['Trade Type']} | {row['Final Signal']} | {row['Action Plan']} |\n"
           st.markdown(markdown_table)
-        
-          # Convert summary to DataFrame
+          # Convert summary table to DataFrame
           df_summary = pd.DataFrame(summary_table)
           
-          # Save to Excel in-memory
+          # Save to Excel in memory
           excel_buffer = BytesIO()
           with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
               df_summary.to_excel(writer, index=False, sheet_name="Summary")
-              writer.save()
+          
+          # Rewind the buffer
           excel_buffer.seek(0)
           
           # Download button
