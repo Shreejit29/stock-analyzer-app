@@ -644,7 +644,7 @@ def stock_analyzer(symbols):
                 
         st.markdown("**🟠 For Long Trade:**")
         st.markdown(support_resistance_alert(latest_price, support_1w, resistance_1w))
-        summary = get_manual_summary(
+        summary = get_manual_summary_whatsapp(
             symbol=symbol,
             clues_4h=clues_4h, signal_4h=signal_4h,
             clues_1d=clues_1d, signal_1d=signal_1d,
