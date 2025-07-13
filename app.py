@@ -44,7 +44,7 @@ def get_manual_summary_whatsapp(symbol, clues_4h, signal_4h, clues_1d, signal_1d
     # Market Conditions
     if float(latest_vix) < 12:
         lines.append("⚠️ VIX <12 — complacency risk.")
-    if "down" in nifty_trend.lower() and "Bullish" in final_signal:
+    if "down" in nifty_trend.lower() and "Bullish" in final:
         lines.append("⚠️ Nifty down — bullish trades risky.")
 
     # Final Advice
