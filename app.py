@@ -427,9 +427,11 @@ def stock_analyzer(symbols):
                 clues.append("⚠️ Weak volume — move may not sustain")
             clues.append(swing_msg)
             clues.append(positional_msg)
-            trap_clues = detect_trap_signals(df)
-            clues.extend(trap_clues)  # Merge trap signals into overall clues
-
+            support, resistance = calc_support_resistance(close)
+            clues.append(f"Support ~{support:.2f}, Resistance ~{resistance:.2f}")
+            # 🔍 Add trap detection
+            trap_clues = detect_trap_signals(df, support, resistance)
+            clues.extend(trap_clues)
             return clues, signal, support, resistance
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
