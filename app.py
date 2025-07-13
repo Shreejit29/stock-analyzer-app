@@ -506,7 +506,7 @@ def stock_analyzer(symbols):
         st.progress(confidence)  # Confidence as a visual progress bar
         st.subheader("📢 Final Signal")
         st.success(final)
-        st.markdown(f"🔁 Trade Type: **{trade_type}**")
+     
         if latest_vix and latest_vix > 20:
             st.warning(f"⚠️ VIX {latest_vix:.2f} is high — prefer non-directional strategies (Iron Condor etc).")
         if 'Bullish' in final and nifty_trend == 'down':
