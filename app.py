@@ -132,6 +132,7 @@ def compute_vwap(df):
     return df
 # Main Program
 def stock_analyzer(symbols, summary_only=False):
+    summary_table = []
     def detect_divergence(price, indicator):
         if len(price) < 3 or len(indicator) < 3:
             return None
@@ -559,6 +560,12 @@ def stock_analyzer(symbols, summary_only=False):
 
             clues.append(swing_msg)
             clues.append(positional_msg)
+            summary_table.append({
+            "Symbol": symbol.upper(),
+            "Trade Type": trade_description,
+            "Final Signal": final,
+            "Action Plan": action_note
+            })
 
             return clues, signal, support, resistance
         clues_4h, signal_4h, support_4h, resistance_4h = analyze_df(df_4h, '4H')
@@ -651,6 +658,9 @@ def stock_analyzer(symbols, summary_only=False):
                      final, trade_description, latest_vix, nifty_trend,
                      sr_support, sr_resistance,traps_4h, traps_1d, traps_1w)
           st.markdown(summary)
+          if summary_table:
+          st.markdown("### 📋 Final Summary Table (All Stocks)")
+          st.table(summary_table)
         else:
           st.subheader(f"{symbol} 4H")
           for c in clues_4h:
@@ -717,6 +727,7 @@ def stock_analyzer(symbols, summary_only=False):
               st.subheader("🔍 Extra Smart Signal Clues")
               for line in additional_signals:
                   st.write(line)
+          
 def candlestick_summary(df):
     recent = df.iloc[-1]
     msgs = []
