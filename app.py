@@ -832,6 +832,14 @@ def candlestick_summary(df):
     
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
+def clean_yf_data(df):
+    if df.empty:
+        return None
+    df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+    if 'Close' not in df.columns:
+        return None
+    df.dropna(subset=['Close'], inplace=True)
+    return df if not df.empty else None
 # === Sidebar ===
 st.sidebar.markdown("## 📊 Chart Viewer")
 show_chart = st.sidebar.checkbox("📈 Show Chart with Indicators", value=True)
