@@ -986,7 +986,80 @@ def detect_candlestick_patterns(df):
     )
 
     return df
+def detect_traps_and_breakouts(df, support, resistance):
+    traps = []
+    latest = df.iloc[-1]
+    prev = df.iloc[-2]
+    vol_avg = df['Volume'].tail(10).mean()
 
+    # === Bull Trap: Break above resistance but closes weak or on low volume
+    if (
+        prev['Close'] < resistance and
+        latest['High'] > resistance and
+        latest['Close'] < resistance and
+        latest['Volume'] < vol_avg
+    ):
+        traps.append("🚨 Bull Trap")
+
+    # === Bear Trap: Break below support but closes above or low vol
+    if (
+        prev['Close'] > support and
+        latest['Low'] < support and
+        latest['Close'] > support and
+        latest['Volume'] < vol_avg
+    ):
+        traps.append("🚨 Bear Trap")
+
+    return traps
+def detect_real_breakout(df, support, resistance):
+    breakouts = []
+    latest = df.iloc[-1]
+    prev = df.iloc[-2]
+    vol_avg = df['Volume'].tail(10).mean()
+
+    # Bullish Breakout: closes above resistance with volume
+    if (
+        latest['Close'] > resistance and
+        latest['Close'] > prev['Close'] and
+        latest['Volume'] > 1.2 * vol_avg
+    ):
+        breakouts.append("✅ Bullish Breakout")
+
+    # Bearish Breakdown: closes below support with volume
+    if (
+        latest['Close'] < support and
+        latest['Close'] < prev['Close'] and
+        latest['Volume'] > 1.2 * vol_avg
+    ):
+        breakouts.append("⛔ Bearish Breakdown")
+
+    return breakouts
+  def calc_support_resistance(close_series, window=20):
+      """
+      Calculate support and resistance using rolling window min/max.
+      """
+      if len(close_series) < window:
+          return close_series.min(), close_series.max()  # fallback
+      support = close_series.rolling(window).min().iloc[-1]
+      resistance = close_series.rolling(window).max().iloc[-1]
+      return support, resistance
+  # Alert of Support Resistance
+  def support_resistance_alert(latest_price, support, resistance):
+      support_gap_pct = (latest_price - support) / latest_price * 100
+      resistance_gap_pct = (resistance - latest_price) / latest_price * 100
+  
+      alerts = []
+  
+      if 0 <= support_gap_pct < 2:
+          alerts.append(f"⚠️ Price is within {support_gap_pct:.2f}% of support — risk of breakdown if breached.")
+  
+      if 0 <= resistance_gap_pct < 2:
+          alerts.append(f"⚠️ Price is within {resistance_gap_pct:.2f}% of resistance — possible reversal zone.")
+  
+      if not alerts:
+          return "✅ No immediate support/resistance barrier risk."
+      else:
+          return "\n".join(alerts)  # return just a string
 # === Sidebar ===
 st.sidebar.markdown("## 📊 Chart Viewer")
 show_patterns = st.sidebar.checkbox("🔍 Show Candlestick Patterns", value=True)
@@ -996,7 +1069,12 @@ chart_tf = st.sidebar.selectbox("🕒 Timeframe", ["4h", "1d", "1wk"])
 
 interval_map = {"4h": ("6mo", "4h"), "1d": ("6mo", "1d"), "1wk": ("2y", "1wk")}
 period, interval = interval_map[chart_tf]
-
+if timeframe == "4H":
+    df_chart = compute_indicators(clean_yf_data(yf.download(chart_symbol, period="3mo", interval="4h")))
+elif timeframe == "1D":
+    df_chart = compute_indicators(clean_yf_data(yf.download(chart_symbol, period="6mo", interval="1d")))
+else:  # "1W"
+    df_chart = compute_indicators(clean_yf_data(yf.download(chart_symbol, period="2y", interval="1wk")))
 # === Show Chart with Indicators ===
 if show_chart:
     st.subheader(f"📉 {chart_symbol} — {chart_tf.upper()} Chart with Indicators")
