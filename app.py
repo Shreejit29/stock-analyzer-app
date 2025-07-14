@@ -832,7 +832,81 @@ def candlestick_summary(df):
     
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
+# === Sidebar ===
+st.sidebar.markdown("## 📊 Chart Viewer")
+show_chart = st.sidebar.checkbox("📈 Show Chart with Indicators", value=True)
+chart_symbol = st.sidebar.text_input("🔍 Symbol", "INFY.NS").strip()
+chart_tf = st.sidebar.selectbox("🕒 Timeframe", ["4h", "1d", "1wk"])
 
+interval_map = {"4h": ("6mo", "4h"), "1d": ("6mo", "1d"), "1wk": ("2y", "1wk")}
+period, interval = interval_map[chart_tf]
+
+# === Show Chart with Indicators ===
+if show_chart:
+    st.subheader(f"📉 {chart_symbol} — {chart_tf.upper()} Chart with Indicators")
+    df_chart = clean_yf_data(yf.download(chart_symbol, period=period, interval=interval))
+
+    if df_chart is None or df_chart.empty:
+        st.error("⚠️ Failed to fetch data.")
+    else:
+        df_chart = compute_indicators(df_chart)
+        latest = df_chart.iloc[-1]
+
+        fig = make_subplots(
+            rows=5, cols=1, shared_xaxes=True,
+            row_heights=[0.4, 0.15, 0.15, 0.15, 0.15],
+            vertical_spacing=0.02,
+            subplot_titles=("Price & EMAs", "MACD", "RSI", "ADX", "Volume / OBV")
+        )
+
+        # === Row 1: Candlestick + EMA + BB + VWAP ===
+        fig.add_trace(go.Candlestick(
+            x=df_chart.index,
+            open=df_chart['Open'],
+            high=df_chart['High'],
+            low=df_chart['Low'],
+            close=df_chart['Close'],
+            name='Price'
+        ), row=1, col=1)
+
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA20'], name="EMA20", line=dict(color='orange')), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA50'], name="EMA50", line=dict(color='blue')), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['EMA200'], name="EMA200", line=dict(color='green')), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['BB_High'], name="BB High", line=dict(color='gray', dash='dot')), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['BB_Low'], name="BB Low", line=dict(color='gray', dash='dot')), row=1, col=1)
+
+        if 'Supertrend' in df_chart.columns:
+            fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['Supertrend'], name="Supertrend", line=dict(color='purple')), row=1, col=1)
+
+        if 'VWAP' in df_chart.columns:
+            fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['VWAP'], name="VWAP", line=dict(color='brown')), row=1, col=1)
+
+        # === Row 2: MACD
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['MACD'], name="MACD", line=dict(color='blue')), row=2, col=1)
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['MACD_Signal'], name="Signal", line=dict(color='red')), row=2, col=1)
+
+        # === Row 3: RSI
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['RSI'], name="RSI", line=dict(color='green')), row=3, col=1)
+        fig.add_hline(y=70, line_dash="dot", line_color="gray", row=3, col=1)
+        fig.add_hline(y=30, line_dash="dot", line_color="gray", row=3, col=1)
+
+        # === Row 4: ADX
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['ADX'], name="ADX", line=dict(color='orange')), row=4, col=1)
+        fig.add_hline(y=25, line_dash="dot", line_color="gray", row=4, col=1)
+
+        # === Row 5: Volume + OBV
+        fig.add_trace(go.Bar(x=df_chart.index, y=df_chart['Volume'], name="Volume", marker_color='lightgray'), row=5, col=1)
+        fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['OBV'], name="OBV", line=dict(color='purple')), row=5, col=1)
+
+        # === Layout ===
+        fig.update_layout(
+            height=1200,
+            xaxis_rangeslider_visible=False,
+            showlegend=True,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 # User input for stock symbols
 symbols = st.text_input("Enter stock symbols (comma-separated):", "INFY.NS").split(",")
 
