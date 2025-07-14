@@ -1139,6 +1139,14 @@ if show_chart:
             showlegend=True,
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
         )
+        if show_traps:
+            support, resistance = calc_support_resistance(df_chart['Close'], window=20)
+            trap_signals = detect_traps_and_breakouts(df_chart, support, resistance)
+            breakout_signals = detect_real_breakout(df_chart, support, resistance)
+        else:
+            trap_signals = []
+            breakout_signals = []
+
         # === Candlestick Pattern Marker Overlay (Grouped by Pattern) ===
         if show_patterns:
           pattern_map = {
