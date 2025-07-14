@@ -687,8 +687,9 @@ def stock_analyzer(symbols, summary_only=False):
               "Bull Clue" : bull_clues,
               "Bear Clue" : bear_clues,
               "Trade Type": trade_description,
-              "Final Signal": final,
+              "Trap Signals": " | ".join(traps_4h + traps_1d + traps_1w) if (traps_4h or traps_1d or traps_1w) else "None",
               "Smart Signal": " | ".join(additional_signals) if additional_signals else "None",
+              "Final Signal": final,
               "Action Plan": action_note
               })
           if summary_table:
