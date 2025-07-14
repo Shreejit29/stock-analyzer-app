@@ -840,6 +840,151 @@ def clean_yf_data(df):
         return None
     df.dropna(subset=['Close'], inplace=True)
     return df if not df.empty else None
+def compute_indicators(df):
+      close = df['Close']
+      high = df['High']
+      low = df['Low']
+      
+      # Momentum
+      df['RSI'] = RSIIndicator(close).rsi()
+      macd_obj = MACD(close)
+      df['MACD'] = macd_obj.macd()
+      df['MACD_Signal'] = macd_obj.macd_signal()
+  
+      # Trend indicators
+      df['EMA20'] = EMAIndicator(close, 20).ema_indicator()
+      df['EMA50'] = EMAIndicator(close, 50).ema_indicator()
+      df['EMA200'] = EMAIndicator(close, 200).ema_indicator()
+      df['ADX'] = ADXIndicator(high, low, close).adx()
+  
+      # Volatility
+      bb = BollingerBands(close)
+      df['BB_High'] = bb.bollinger_hband()
+      df['BB_Low'] = bb.bollinger_lband()
+      df['ATR'] = AverageTrueRange(high, low, close).average_true_range()
+  
+      # Volume
+      df['OBV'] = OnBalanceVolumeIndicator(close, df['Volume']).on_balance_volume()
+  
+      # Custom indicators
+      df = compute_supertrend(df)  # Your Supertrend function
+      df = compute_vwap(df)        # Your VWAP function
+      df = detect_candlestick_patterns(df)  # Already customized
+  
+      return df
+  # Define Supertrend
+def compute_supertrend(df, period=10, multiplier=3):
+    hl2 = (df['High'] + df['Low']) / 2
+    atr = AverageTrueRange(df['High'], df['Low'], df['Close'], window=period).average_true_range()
+    supertrend = pd.Series(index=df.index, dtype='float64')
+    direction = pd.Series(index=df.index, dtype='int')
+
+    supertrend.iloc[0] = hl2.iloc[0] + multiplier * atr.iloc[0]
+    direction.iloc[0] = 1  
+
+    for i in range(1, len(df)):
+        if direction.iloc[i-1] == 1:
+            supertrend.iloc[i] = min(hl2.iloc[i] + multiplier * atr.iloc[i], supertrend.iloc[i-1])
+        else:
+            supertrend.iloc[i] = max(hl2.iloc[i] - multiplier * atr.iloc[i], supertrend.iloc[i-1])
+
+        if df['Close'].iloc[i] > supertrend.iloc[i]:
+            direction.iloc[i] = 1
+        else:
+            direction.iloc[i] = -1
+    df['Supertrend'] = supertrend
+    df['Supertrend_dir'] = direction
+    return df
+# Compute VWAP
+def compute_vwap(df):
+    df['VWAP'] = (df['Volume'] * (df['High'] + df['Low'] + df['Close']) / 3).cumsum() / df['Volume'].cumsum()
+    return df
+# Define Candlesticks
+def detect_candlestick_patterns(df):
+    df = df.copy()
+    body = abs(df['Close'] - df['Open'])
+    range_ = df['High'] - df['Low']
+    upper_shadow = df['High'] - df[['Close', 'Open']].max(axis=1)
+    lower_shadow = df[['Close', 'Open']].min(axis=1) - df['Low']
+    avg_volume = df['Volume'].rolling(window=5).mean()
+    high_volume = df['Volume'] > avg_volume
+
+    df['Doji'] = (body <= 0.1 * range_)
+    df['Hammer'] = (
+        (body <= 0.3 * range_) &
+        (lower_shadow >= 2 * body) &
+        (upper_shadow <= 0.1 * range_) &
+        high_volume
+    )
+    df['Inverted_Hammer'] = (
+        (body <= 0.3 * range_) &
+        (upper_shadow >= 2 * body) &
+        (lower_shadow <= 0.1 * range_) &
+        high_volume
+    )
+    df['Hanging_Man'] = df['Hammer'] & (df['Close'] < df['Open'])
+    df['Shooting_Star'] = (
+        (body <= 0.3 * range_) &
+        (upper_shadow >= 2 * body) &
+        (lower_shadow <= 0.1 * range_) &
+        high_volume
+    )
+    df['Bullish_Engulfing'] = (
+        (df['Close'] > df['Open']) &
+        (df['Close'].shift(1) < df['Open'].shift(1)) &
+        (df['Open'] <= df['Close'].shift(1)) &
+        (df['Close'] >= df['Open'].shift(1)) &
+        high_volume
+    )
+    df['Bearish_Engulfing'] = (
+        (df['Close'] < df['Open']) &
+        (df['Close'].shift(1) > df['Open'].shift(1)) &
+        (df['Open'] >= df['Close'].shift(1)) &
+        (df['Close'] <= df['Open'].shift(1)) &
+        high_volume
+    )
+    df['Piercing_Line'] = (
+        (df['Close'].shift(1) < df['Open'].shift(1)) &
+        (df['Close'] > df['Open']) &
+        (df['Close'] > (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
+        (df['Open'] < df['Close'].shift(1)) &
+        high_volume
+    )
+    df['Dark_Cloud_Cover'] = (
+        (df['Close'].shift(1) > df['Open'].shift(1)) &
+        (df['Close'] < df['Open']) &
+        (df['Close'] < (df['Open'].shift(1) + df['Close'].shift(1)) / 2) &
+        (df['Open'] > df['Close'].shift(1)) &
+        high_volume
+    )
+    df['Three_White_Soldiers'] = (
+        (df['Close'] > df['Open']) &
+        (df['Close'].shift(1) > df['Open'].shift(1)) &
+        (df['Close'].shift(2) > df['Open'].shift(2)) &
+        high_volume
+    )
+    df['Three_Black_Crows'] = (
+        (df['Close'] < df['Open']) &
+        (df['Close'].shift(1) < df['Open'].shift(1)) &
+        (df['Close'].shift(2) < df['Open'].shift(2)) &
+        high_volume
+    )
+    df['Morning_Star'] = (
+        (df['Close'].shift(2) < df['Open'].shift(2)) &
+        (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
+        (df['Close'] > df['Open']) &
+        (df['Close'] > (df['Open'].shift(2) + df['Close'].shift(2)) / 2) &
+        high_volume
+    )
+    df['Evening_Star'] = (
+        (df['Close'].shift(2) > df['Open'].shift(2)) &
+        (abs(df['Close'].shift(1) - df['Open'].shift(1)) <= 0.1 * (df['High'].shift(1) - df['Low'].shift(1))) &
+        (df['Close'] < df['Open']) &
+        (df['Close'] < (df['Open'].shift(2) + df['Close'].shift(2)) / 2) &
+        high_volume
+    )
+
+    return df
 # === Sidebar ===
 st.sidebar.markdown("## 📊 Chart Viewer")
 show_chart = st.sidebar.checkbox("📈 Show Chart with Indicators", value=True)
