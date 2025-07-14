@@ -1043,8 +1043,7 @@ chart_tf = st.sidebar.selectbox("🕒 Timeframe", ["4h", "1d", "1wk"])
 interval_map = {"4h": ("6mo", "4h"), "1d": ("6mo", "1d"), "1wk": ("2y", "1wk")}
 period, interval = interval_map[chart_tf]
 if show_traps:
-    # === Calculate support/resistance
-    support, resistance = calc_support_resistance(df_chart['Close'], window=20)
+   
 
     # === Detect traps on the latest bar only
     trap_signals = detect_trap_signals(df_chart, support, resistance)
