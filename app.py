@@ -666,48 +666,48 @@ def stock_analyzer(symbols, summary_only=False):
               traps_4h, traps_1d, traps_1w,
               additional_signals=additional_signals
             )
-            st.markdown(summary)
-            additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
-             
-            # Count clues
-            bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
-            bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_4h + clues_1d + clues_1w)
-            # ✅ Append only — no rendering here
-            if "Bullish" in final:
-                action_note = f"✅ Look for breakout above {sr_resistance} with volume."
-            elif "Bearish" in final:
-                action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
-            else:
-                action_note = "⏸️ Wait — no strong directional confirmation."
-            
-            summary_table.append({
-                "Symbol": symbol.upper(),
-                "Price": latest_price,
-                "Bull Clue" : bull_clues,
-                "Bear Clue" : bear_clues,
-                "Trade Type": trade_description,
-                "Final Signal": final,
-                "Action Plan": action_note,
-                "Smart Signal": additional_signals
-                })
-            if summary_table:
-              st.markdown("### 📋 Final Summary Table (All Stocks)")
-              st.table(summary_table)  
-            # 🔽 Save table to Excel (in memory)
-            df_summary = pd.DataFrame(summary_table)
-            excel_buffer = BytesIO()
-            with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
-                df_summary.to_excel(writer, index=False, sheet_name="Summary")
-            excel_buffer.seek(0)
+          st.markdown(summary)
+          additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
+           
+          # Count clues
+          bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
+          bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_4h + clues_1d + clues_1w)
+          # ✅ Append only — no rendering here
+          if "Bullish" in final:
+              action_note = f"✅ Look for breakout above {sr_resistance} with volume."
+          elif "Bearish" in final:
+              action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
+          else:
+              action_note = "⏸️ Wait — no strong directional confirmation."
+          
+          summary_table.append({
+              "Symbol": symbol.upper(),
+              "Price": latest_price,
+              "Bull Clue" : bull_clues,
+              "Bear Clue" : bear_clues,
+              "Trade Type": trade_description,
+              "Final Signal": final,
+              "Action Plan": action_note,
+              "Smart Signal": additional_signals
+              })
+          if summary_table:
+            st.markdown("### 📋 Final Summary Table (All Stocks)")
+            st.table(summary_table)  
+          # 🔽 Save table to Excel (in memory)
+          df_summary = pd.DataFrame(summary_table)
+          excel_buffer = BytesIO()
+          with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+              df_summary.to_excel(writer, index=False, sheet_name="Summary")
+          excel_buffer.seek(0)
 
-            # 🔽 Provide download button
-            st.download_button(
-                label="📥 Download Summary as Excel",
-                data=excel_buffer,
-                file_name="stock_summary.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key=f"summary_download_{len(summary_table)}"  # ✅ Unique key
-            )
+          # 🔽 Provide download button
+          st.download_button(
+              label="📥 Download Summary as Excel",
+              data=excel_buffer,
+              file_name="stock_summary.xlsx",
+              mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              key=f"summary_download_{len(summary_table)}"  # ✅ Unique key
+          )
 
             
         else:
