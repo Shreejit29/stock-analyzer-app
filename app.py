@@ -688,8 +688,7 @@ def stock_analyzer(symbols, summary_only=False):
                 "Final Signal": final,
                 "Action Plan": action_note,
                 "Smart Signal": " | ".join(additional_signals) if additional_signals else "None"
-                }, ignore_index=True
-            })
+                }, ignore_index=True)
             if summary_table:
               st.markdown("### 📋 Final Summary Table (All Stocks)")
               st.table(summary_table)  
