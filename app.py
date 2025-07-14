@@ -659,6 +659,7 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
 
         if summary_only:
+          additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
           summary = generate_summary(
               symbol, latest_price, signal_4h, signal_1d, signal_1w,
               clues_4h, clues_1d, clues_1w, final, trade_description,
@@ -667,7 +668,7 @@ def stock_analyzer(symbols, summary_only=False):
               additional_signals=additional_signals
             )
           st.markdown(summary)
-          additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
+          
            
           # Count clues
           bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
