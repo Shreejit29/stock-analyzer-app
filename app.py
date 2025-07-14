@@ -1175,31 +1175,32 @@ if show_chart:
                           showlegend=False,
                           name=pattern
                       ), row=1, col=1)
-          if show_traps:
-              support, resistance = calc_support_resistance(df_chart['Close'], window=20)
-              trap_signals = detect_traps_and_breakouts(df_chart, support, resistance)
-              breakout_signals = detect_real_breakout(df_chart, support, resistance)
-          else:
-              trap_signals = []
-              breakout_signals = []
-          if show_traps:
-              y_close = df_chart['Close'].iloc[-1]
-              x_time = df_chart.index[-1]
-          
-              for label in trap_signals + breakout_signals:
-                  fig.add_trace(go.Scatter(
-                      x=[x_time],
-                      y=[y_close],
-                      mode='markers+text',
-                      marker=dict(size=14, color='red' if 'Trap' in label else 'green'),
-                      text=[label],
-                      textposition='bottom center',
-                      name=label
-                  ))
-          if show_traps and (trap_signals or breakout_signals):
-              st.subheader("⚠️ Trap & Breakout Signals")
-              for line in trap_signals + breakout_signals:
-                  st.write(f"🔔 {line}")
+        # ✅ 2. Then add trap/breakout markers if enabled
+        if show_traps:
+            support, resistance = calc_support_resistance(df_chart['Close'], window=20)
+            trap_signals = detect_traps_and_breakouts(df_chart, support, resistance)
+            breakout_signals = detect_real_breakout(df_chart, support, resistance)
+        
+            if trap_signals or breakout_signals:
+                y_close = df_chart['Close'].iloc[-1]
+                x_time = df_chart.index[-1]
+                for label in trap_signals + breakout_signals:
+                    st.write("📌 Trap Signals:", trap_signals)
+                    st.write("📌 Breakout Signals:", breakout_signals)
+                    fig.add_trace(go.Scatter(
+                        x=[x_time],
+                        y=[y_close],
+                        mode='markers+text',
+                        marker=dict(size=14, color='red' if 'Trap' in label else 'green'),
+                        text=[label],
+                        textposition='bottom center',
+                        name=label
+                    ))
+        
+                st.subheader("⚠️ Trap & Breakout Signals")
+                for line in trap_signals + breakout_signals:
+                    st.write(f"🔔 {line}")
+
         st.plotly_chart(fig, use_container_width=True)
 # User input for stock symbols
 symbols = st.text_input("Enter stock symbols (comma-separated):", "INFY.NS").split(",")
