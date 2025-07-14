@@ -1069,9 +1069,9 @@ chart_tf = st.sidebar.selectbox("🕒 Timeframe", ["4h", "1d", "1wk"])
 
 interval_map = {"4h": ("6mo", "4h"), "1d": ("6mo", "1d"), "1wk": ("2y", "1wk")}
 period, interval = interval_map[chart_tf]
-if timeframe == "4H":
+if chart_tf == "4H":
     df_chart = compute_indicators(clean_yf_data(yf.download(chart_symbol, period="3mo", interval="4h")))
-elif timeframe == "1D":
+elif chart_tf == "1D":
     df_chart = compute_indicators(clean_yf_data(yf.download(chart_symbol, period="6mo", interval="1d")))
 else:  # "1W"
     df_chart = compute_indicators(clean_yf_data(yf.download(chart_symbol, period="2y", interval="1wk")))
