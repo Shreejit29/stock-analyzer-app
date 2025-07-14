@@ -986,125 +986,16 @@ def detect_candlestick_patterns(df):
     )
 
     return df
-def detect_trap_signals(df, support, resistance):
-    traps = []
-    latest = df.iloc[-1]
-    prev = df.iloc[-2]
-    avg_vol = df['Volume'].tail(5).mean()
-
-    # === Bull Trap
-    if (
-        prev['Close'] < resistance and
-        latest['Close'] > resistance and
-        latest['Close'] < resistance * 1.005 and
-        latest['Volume'] < avg_vol
-    ):
-        traps.append("Bull Trap")
-
-    # === Bear Trap
-    if (
-        prev['Close'] > support and
-        latest['Close'] < support and
-        latest['Close'] > support * 0.995 and
-        latest['Volume'] < avg_vol
-    ):
-        traps.append("Bear Trap")
-
-    # === Fakeout after bullish candle
-    if latest.get('Piercing_Line') or latest.get('Bullish_Engulfing'):
-        if latest['Close'] < prev['Close']:
-            traps.append("Bullish Fakeout")
-
-    # === Fakeout after bearish candle
-    if latest.get('Dark_Cloud_Cover') or latest.get('Bearish_Engulfing'):
-        if latest['Close'] > prev['Close']:
-            traps.append("Bearish Fakeout")
-
-    return traps
-# Support Resistance
-def calc_support_resistance(close_series, window=20):
-    """
-    Calculate support and resistance using rolling window min/max.
-    """
-    if len(close_series) < window:
-        return close_series.min(), close_series.max()  # fallback
-    support = close_series.rolling(window).min().iloc[-1]
-    resistance = close_series.rolling(window).max().iloc[-1]
-    return support, resistance
 
 # === Sidebar ===
 st.sidebar.markdown("## 📊 Chart Viewer")
 show_patterns = st.sidebar.checkbox("🔍 Show Candlestick Patterns", value=True)
 show_chart = st.sidebar.checkbox("📈 Show Chart with Indicators", value=True)
-show_traps = st.sidebar.checkbox("🔍 Show Trap & Breakout Markers", value=True)
 chart_symbol = st.sidebar.text_input("🔍 Symbol", "INFY.NS").strip()
 chart_tf = st.sidebar.selectbox("🕒 Timeframe", ["4h", "1d", "1wk"])
 
 interval_map = {"4h": ("6mo", "4h"), "1d": ("6mo", "1d"), "1wk": ("2y", "1wk")}
 period, interval = interval_map[chart_tf]
-if show_traps:
-    
-    
-    # === Detect traps on the latest bar only
-    trap_signals = detect_trap_signals(df, support, resistance)
-    marker_y = df['High'].iloc[-1] * 1.01  # Position marker slightly above candle
-    marker_x = df.index[-1]
-
-    for trap in trap_signals:
-        fig.add_trace(go.Scatter(
-            x=[marker_x],
-            y=[marker_y],
-            mode='text',
-            text=[f"🚨 {trap}"],
-            textfont=dict(color='orange', size=12),
-            showlegend=False,
-            name="Trap Signal"
-        ))
-
-    # === Breakout confirmation markers
-    latest = df_chart.iloc[-1]
-    recent_vol = df_chart['Volume'].tail(5).mean()
-    vol_confirmed = latest['Volume'] > 1.5 * recent_vol
-
-    # Bullish breakout
-    if latest['Close'] > resistance * 1.002:
-        fig.add_trace(go.Scatter(
-            x=[marker_x],
-            y=[marker_y * 1.01],
-            mode='text',
-            text=[f"✅ Breakout Above R"],
-            textfont=dict(color='green', size=12),
-            showlegend=False
-        ))
-        if vol_confirmed:
-            fig.add_trace(go.Scatter(
-                x=[marker_x],
-                y=[marker_y * 1.02],
-                mode='text',
-                text=["📊 Volume Confirmed"],
-                textfont=dict(color='blue', size=11),
-                showlegend=False
-            ))
-        else:
-            fig.add_trace(go.Scatter(
-                x=[marker_x],
-                y=[marker_y * 1.02],
-                mode='text',
-                text=["⚠️ Weak Volume"],
-                textfont=dict(color='gray', size=11),
-                showlegend=False
-            ))
-
-    # Bearish breakdown
-    if latest['Close'] < support * 0.998:
-        fig.add_trace(go.Scatter(
-            x=[marker_x],
-            y=[df_chart['Low'].iloc[-1] * 0.99],
-            mode='text',
-            text=[f"🔻 Breakdown Below S"],
-            textfont=dict(color='red', size=12),
-            showlegend=False
-        ))
 
 # === Show Chart with Indicators ===
 if show_chart:
