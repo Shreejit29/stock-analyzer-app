@@ -688,8 +688,8 @@ def stock_analyzer(symbols, summary_only=False):
               "Bear Clue" : bear_clues,
               "Trade Type": trade_description,
               "Final Signal": final,
+              "Smart Signal": " | ".join(additional_signals) if additional_signals else "None"
               "Action Plan": action_note,
-              "Smart Signal": additional_signals
               })
           if summary_table:
             st.markdown("### 📋 Final Summary Table (All Stocks)")
