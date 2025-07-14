@@ -9,6 +9,8 @@ from ta.volatility import BollingerBands, AverageTrueRange
 from io import BytesIO
 import openpyxl  # For reading Excel files (automatically used by Pandas)
 import xlsxwriter  # For writing Excel files with formatting
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
                      clues_4h, clues_1d, clues_1w,
                      final, trade_description, latest_vix, nifty_trend,
