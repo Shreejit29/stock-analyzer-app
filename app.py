@@ -9,9 +9,11 @@ from ta.volatility import BollingerBands, AverageTrueRange
 from io import BytesIO
 import openpyxl  # For reading Excel files (automatically used by Pandas)
 import xlsxwriter  # For writing Excel files with formatting
-def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clues_4h, clues_1d, clues_1w,
+def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
+                     clues_4h, clues_1d, clues_1w,
                      final, trade_description, latest_vix, nifty_trend,
-                     sr_support, sr_resistance,traps_4h, traps_1d, traps_1w):
+                     sr_support, sr_resistance, traps_4h, traps_1d, traps_1w,
+                     additional_signals=None):
 
     # Count clues
     bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
@@ -39,7 +41,7 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clue
         action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
     else:
         action_note = "⏸️ Wait — no strong directional confirmation."
-
+    
     # Format message
     summary = f"""
 📊 *{symbol.upper()} - Trade Summary*
@@ -60,10 +62,14 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w, clue
 {vix_note}
 {nifty_note}
 
+
 📈 *Action Plan*:
 {action_note}
 """.strip()
-
+    if additional_signals:
+          summary += "\n\n📌 *Additional Insights*:\n"
+          for line in additional_signals:
+              summary += f"{line}\n"
     return summary
 
 def generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent):
@@ -653,13 +659,15 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
 
         if summary_only:
-            summary = generate_summary(
-                symbol, latest_price, signal_4h, signal_1d, signal_1w,
-                clues_4h, clues_1d, clues_1w, final, trade_description,
-                latest_vix, nifty_trend, sr_support, sr_resistance,
-                traps_4h, traps_1d, traps_1w
+            summary = generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
+                     clues_4h, clues_1d, clues_1w,
+                     final, trade_description, latest_vix, nifty_trend,
+                     sr_support, sr_resistance, traps_4h, traps_1d, traps_1w,
+                     additional_signals=None
             )
             st.markdown(summary)
+            additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
+             
             # Count clues
             bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
             bear_clues = sum('Bearish' in c or 'Down' in c for c in clues_4h + clues_1d + clues_1w)
@@ -670,7 +678,7 @@ def stock_analyzer(symbols, summary_only=False):
                 action_note = f"🔻 Watch for breakdown below {sr_support} with volume."
             else:
                 action_note = "⏸️ Wait — no strong directional confirmation."
-    
+            
             summary_table.append({
                 "Symbol": symbol.upper(),
                 "Price": latest_price,
@@ -678,7 +686,9 @@ def stock_analyzer(symbols, summary_only=False):
                 "Bear Clue" : bear_clues,
                 "Trade Type": trade_description,
                 "Final Signal": final,
-                "Action Plan": action_note
+                "Action Plan": action_note,
+                "Smart Signal": " | ".join(additional_signals) if additional_signals else "None"
+                }, ignore_index=True
             })
             if summary_table:
               st.markdown("### 📋 Final Summary Table (All Stocks)")
