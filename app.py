@@ -1004,43 +1004,43 @@ if show_chart:
     else:
         df_chart = compute_indicators(df_chart)
         latest = df_chart.iloc[-1]
-        # === Candlestick Pattern Marker Overlay ===
-        pattern_markers = []
+    # === Candlestick Pattern Marker Overlay ===
+    pattern_markers = []
+    
+    # Map patterns to marker emoji and position
+    pattern_map = {
+        'Bullish_Engulfing': ('📈 Bullish Engulfing', 'below', 'green'),
+        'Hammer': ('📈 Hammer', 'below', 'green'),
+        'Piercing_Line': ('📈 Piercing Line', 'below', 'green'),
+        'Morning_Star': ('📈 Morning Star', 'below', 'green'),
+        'Three_White_Soldiers': ('📈 3 White Soldiers', 'below', 'green'),
         
-        # Map patterns to marker emoji and position
-        pattern_map = {
-            'Bullish_Engulfing': ('📈 Bullish Engulfing', 'below', 'green'),
-            'Hammer': ('📈 Hammer', 'below', 'green'),
-            'Piercing_Line': ('📈 Piercing Line', 'below', 'green'),
-            'Morning_Star': ('📈 Morning Star', 'below', 'green'),
-            'Three_White_Soldiers': ('📈 3 White Soldiers', 'below', 'green'),
-            
-            'Bearish_Engulfing': ('📉 Bearish Engulfing', 'above', 'red'),
-            'Shooting_Star': ('📉 Shooting Star', 'above', 'red'),
-            'Dark_Cloud_Cover': ('📉 Dark Cloud Cover', 'above', 'red'),
-            'Evening_Star': ('📉 Evening Star', 'above', 'red'),
-            'Three_Black_Crows': ('📉 3 Black Crows', 'above', 'red')
-        }
-        
-        for pattern, (text, position, color) in pattern_map.items():
-            if pattern in df_chart.columns:
-                for i in range(len(df_chart)):
-                    if df_chart[pattern].iloc[i]:
-                        y = df_chart['Low'].iloc[i] * 0.995 if position == 'below' else df_chart['High'].iloc[i] * 1.005
-                        pattern_markers.append(go.Scatter(
-                            x=[df_chart.index[i]],
-                            y=[y],
-                            mode="text",
-                            text=[text],
-                            textposition="middle center",
-                            textfont=dict(size=12, color=color),
-                            showlegend=False,
-                            name=pattern
-                        ))
-        
-        # Add pattern markers to chart
-        for trace in pattern_markers:
-            fig.add_trace(trace, row=1, col=1)
+        'Bearish_Engulfing': ('📉 Bearish Engulfing', 'above', 'red'),
+        'Shooting_Star': ('📉 Shooting Star', 'above', 'red'),
+        'Dark_Cloud_Cover': ('📉 Dark Cloud Cover', 'above', 'red'),
+        'Evening_Star': ('📉 Evening Star', 'above', 'red'),
+        'Three_Black_Crows': ('📉 3 Black Crows', 'above', 'red')
+    }
+    
+    for pattern, (text, position, color) in pattern_map.items():
+        if pattern in df_chart.columns:
+            for i in range(len(df_chart)):
+                if df_chart[pattern].iloc[i]:
+                    y = df_chart['Low'].iloc[i] * 0.995 if position == 'below' else df_chart['High'].iloc[i] * 1.005
+                    pattern_markers.append(go.Scatter(
+                        x=[df_chart.index[i]],
+                        y=[y],
+                        mode="text",
+                        text=[text],
+                        textposition="middle center",
+                        textfont=dict(size=12, color=color),
+                        showlegend=False,
+                        name=pattern
+                    ))
+    
+    # Add pattern markers to chart
+    for trace in pattern_markers:
+        fig.add_trace(trace, row=1, col=1)
 
         fig = make_subplots(
             rows=5, cols=1, shared_xaxes=True,
