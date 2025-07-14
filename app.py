@@ -1160,6 +1160,10 @@ if show_chart:
                     textposition='bottom center',
                     name=label
                 ))
+        if show_traps and (trap_signals or breakout_signals):
+            st.subheader("⚠️ Trap & Breakout Signals")
+            for line in trap_signals + breakout_signals:
+                st.write(f"🔔 {line}")
 
         # === Candlestick Pattern Marker Overlay (Grouped by Pattern) ===
         if show_patterns:
