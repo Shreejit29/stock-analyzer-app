@@ -1031,23 +1031,7 @@ def calc_support_resistance(close_series, window=20):
     support = close_series.rolling(window).min().iloc[-1]
     resistance = close_series.rolling(window).max().iloc[-1]
     return support, resistance
-# Alert of Support Resistance
-def support_resistance_alert(latest_price, support, resistance):
-    support_gap_pct = (latest_price - support) / latest_price * 100
-    resistance_gap_pct = (resistance - latest_price) / latest_price * 100
 
-    alerts = []
-
-    if 0 <= support_gap_pct < 2:
-        alerts.append(f"⚠️ Price is within {support_gap_pct:.2f}% of support — risk of breakdown if breached.")
-
-    if 0 <= resistance_gap_pct < 2:
-        alerts.append(f"⚠️ Price is within {resistance_gap_pct:.2f}% of resistance — possible reversal zone.")
-
-    if not alerts:
-        return "✅ No immediate support/resistance barrier risk."
-    else:
-        return "\n".join(alerts)  # return just a string
 # === Sidebar ===
 st.sidebar.markdown("## 📊 Chart Viewer")
 show_patterns = st.sidebar.checkbox("🔍 Show Candlestick Patterns", value=True)
