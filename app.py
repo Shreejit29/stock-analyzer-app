@@ -1197,9 +1197,9 @@ if show_chart:
                         name=label
                     ))
         
-          st.subheader("⚠️ Trap & Breakout Signals")
-          for line in trap_signals + breakout_signals:
-              st.write(f"🔔 {line}")
+            st.subheader("⚠️ Trap & Breakout Signals")
+            for line in trap_signals + breakout_signals:
+                st.write(f"🔔 {line}")
 
         st.plotly_chart(fig, use_container_width=True)
 # User input for stock symbols
