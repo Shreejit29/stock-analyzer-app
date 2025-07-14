@@ -1044,7 +1044,9 @@ interval_map = {"4h": ("6mo", "4h"), "1d": ("6mo", "1d"), "1wk": ("2y", "1wk")}
 period, interval = interval_map[chart_tf]
 if show_traps:
    
-
+    df_chart = clean_yf_data(yf.download(
+    selected_symbol, period=selected_period, interval=selected_interval
+    ))
     # === Detect traps on the latest bar only
     trap_signals = detect_trap_signals(df_chart, support, resistance)
     marker_y = df_chart['High'].iloc[-1] * 1.01  # Position marker slightly above candle
