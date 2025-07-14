@@ -1064,6 +1064,7 @@ def support_resistance_alert(latest_price, support, resistance):
 st.sidebar.markdown("## 📊 Chart Viewer")
 show_patterns = st.sidebar.checkbox("🔍 Show Candlestick Patterns", value=True)
 show_chart = st.sidebar.checkbox("📈 Show Chart with Indicators", value=True)
+show_traps = st.sidebar.checkbox("📉 Show Trap & Breakout Signals", value=True)
 chart_symbol = st.sidebar.text_input("🔍 Symbol", "INFY.NS").strip()
 chart_tf = st.sidebar.selectbox("🕒 Timeframe", ["4h", "1d", "1wk"])
 
