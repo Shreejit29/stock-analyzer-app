@@ -659,7 +659,7 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
 
         if summary_only:
-            summary = generate_summary(
+          summary = generate_summary(
               symbol, latest_price, signal_4h, signal_1d, signal_1w,
               clues_4h, clues_1d, clues_1w, final, trade_description,
               latest_vix, nifty_trend, sr_support, sr_resistance,
