@@ -1146,6 +1146,20 @@ if show_chart:
         else:
             trap_signals = []
             breakout_signals = []
+        if show_traps:
+            y_close = df_chart['Close'].iloc[-1]
+            x_time = df_chart.index[-1]
+        
+            for label in trap_signals + breakout_signals:
+                fig.add_trace(go.Scatter(
+                    x=[x_time],
+                    y=[y_close],
+                    mode='markers+text',
+                    marker=dict(size=14, color='red' if 'Trap' in label else 'green'),
+                    text=[label],
+                    textposition='bottom center',
+                    name=label
+                ))
 
         # === Candlestick Pattern Marker Overlay (Grouped by Pattern) ===
         if show_patterns:
