@@ -832,32 +832,7 @@ def candlestick_summary(df):
     
 # === Streamlit app code ===
 st.title("📈 Stock Analyzer")
-def calc_support_resistance(close_series, window=20):
-    """
-    Calculate support and resistance using rolling window min/max.
-    """
-    if len(close_series) < window:
-        return close_series.min(), close_series.max()  # fallback
-    support = close_series.rolling(window).min().iloc[-1]
-    resistance = close_series.rolling(window).max().iloc[-1]
-    return support, resistance
-# Alert of Support Resistance
-def support_resistance_alert(latest_price, support, resistance):
-    support_gap_pct = (latest_price - support) / latest_price * 100
-    resistance_gap_pct = (resistance - latest_price) / latest_price * 100
 
-    alerts = []
-
-    if 0 <= support_gap_pct < 2:
-        alerts.append(f"⚠️ Price is within {support_gap_pct:.2f}% of support — risk of breakdown if breached.")
-
-    if 0 <= resistance_gap_pct < 2:
-        alerts.append(f"⚠️ Price is within {resistance_gap_pct:.2f}% of resistance — possible reversal zone.")
-
-    if not alerts:
-        return "✅ No immediate support/resistance barrier risk."
-    else:
-        return "\n".join(alerts)  # return just a string
 def clean_yf_data(df):
     if df.empty:
         return None
