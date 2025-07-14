@@ -659,11 +659,12 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
 
         if summary_only:
-            summary = generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
-                     clues_4h, clues_1d, clues_1w,
-                     final, trade_description, latest_vix, nifty_trend,
-                     sr_support, sr_resistance, traps_4h, traps_1d, traps_1w,
-                     additional_signals=None
+            summary = generate_summary(
+              symbol, latest_price, signal_4h, signal_1d, signal_1w,
+              clues_4h, clues_1d, clues_1w, final, trade_description,
+              latest_vix, nifty_trend, sr_support, sr_resistance,
+              traps_4h, traps_1d, traps_1w,
+              additional_signals=additional_signals
             )
             st.markdown(summary)
             additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
@@ -688,7 +689,7 @@ def stock_analyzer(symbols, summary_only=False):
                 "Final Signal": final,
                 "Action Plan": action_note,
                 "Smart Signal": " | ".join(additional_signals) if additional_signals else "None"
-                }, ignore_index=True)
+                })
             if summary_table:
               st.markdown("### 📋 Final Summary Table (All Stocks)")
               st.table(summary_table)  
