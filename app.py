@@ -738,7 +738,7 @@ def stock_analyzer(symbols, summary_only=False):
         elif strategy_type == "Swing":
            phase = phase_1d
         else:
-            _phase = phase_1w
+           phase = phase_1w
         
         # Get response to show in summary
         trade_response = market_phase_message(strategy_type, final, phase)
