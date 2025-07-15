@@ -727,13 +727,15 @@ def stock_analyzer(symbols, summary_only=False):
         phase_1d = detect_market_phase(df_1d)
         phase_1w = detect_market_phase(df_1w)
         
-        # Pick best phase based on strategy type
-        best_phase = (
-            phase_4h if strategy_type == "Short-Term"
-            else phase_1d if strategy_type == "Swing"
-            else phase_1w
-        )
-        
+
+        # Choose market phase by strategy type
+        if strategy_type == "Short-Term":
+            phase, response = detect_market_phase(df_4h)
+        elif strategy_type == "Swing":
+            phase, response = detect_market_phase(df_1d)
+        else:
+            phase, response = detect_market_phase(df_1w)
+
         # Get best response message
         trade_response = market_phase_message(strategy_type, final, best_phase)
 
