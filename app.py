@@ -720,22 +720,22 @@ def stock_analyzer(symbols, summary_only=False):
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
         # Detect market phase per timeframe
-        market_phase, market_phase_response = detect_market_phase(df)
+
         phase_4h, _ = detect_market_phase(df_4h)
         phase_1d, _ = detect_market_phase(df_1d)
         phase_1w, _ = detect_market_phase(df_1w)
         
-        # Choose market phase and response by strategy type
+        # Choose phase based on strategy type
         if strategy_type == "Short-Term":
-            phase, response = detect_market_phase(df_4h)
+            phase = phase_4h
         elif strategy_type == "Swing":
-            phase, response = detect_market_phase(df_1d)
+            phase = phase_1d
         else:
-            phase, response = detect_market_phase(df_1w)
+            phase = phase_1w
         
-        # Get best response message based on final signal and phase
-        trade_response = market_phase_message(strategy_type, final, phase)
-
+        # Get response for the selected phase and strategy
+        response = market_phase_message(strategy_type, final, phase)
+        trade_response = response  # Can keep as separate if you wish
 
         if summary_only:
           trade_response = market_phase_message(strategy_type, final, best_phase)  
