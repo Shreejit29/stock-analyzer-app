@@ -721,7 +721,6 @@ def stock_analyzer(symbols, summary_only=False):
           for c in clues_4h:
               st.write(f"🔹 {c}")
           st.write(f"➡ 4H Signal: {signal_4h}")
-          
           st.subheader(f"{symbol} 1D")
           for c in clues_1d:
               st.write(f"🔹 {c}")
