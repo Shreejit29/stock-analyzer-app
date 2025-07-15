@@ -648,8 +648,8 @@ def stock_analyzer(symbols, summary_only=False):
             else phase_1w
         )
     
-    # Get best response message
-    trade_response = market_phase_message(strategy_type, final, best_phase)
+        # Get best response message
+        trade_response = market_phase_message(strategy_type, final, best_phase)
         # Extract trap clues
         def extract_traps(clues):
             return [c for c in clues if 'Trap' in c or ('Breakout' in c and '⚠️' in c) or '🚨' in c]
