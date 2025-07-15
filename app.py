@@ -11,70 +11,13 @@ import openpyxl  # For reading Excel files (automatically used by Pandas)
 import xlsxwriter  # For writing Excel files with formatting
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-def detect_market_phase(df):
-    """
-    Detect market phase based on price action, EMA alignment, and volume.
-    Returns: 'Accumulation', 'Markup', 'Distribution', or 'Markdown'
-    """
-    if len(df) < 50:
-        return "Unknown"
 
-    ema20 = df['EMA20'].iloc[-1]
-    ema50 = df['EMA50'].iloc[-1]
-    ema200 = df['EMA200'].iloc[-1]
-    close = df['Close'].iloc[-1]
-
-    avg_vol = df['Volume'].tail(20).mean()
-    recent_vol = df['Volume'].iloc[-1]
-
-    if close < ema20 < ema50 and recent_vol < avg_vol:
-        return "Accumulation"
-    elif close > ema20 > ema50 and ema50 > ema200:
-        return "Markup"
-    elif close > ema20 and ema20 < ema50 and recent_vol > avg_vol:
-        return "Distribution"
-    elif close < ema20 and ema20 < ema50 and ema50 < ema200:
-        return "Markdown"
-    else:
-        return "Transition"
-def market_phase_message(trade_type, signal, phase):
-    if trade_type == "Swing":
-        if "Bullish" in signal and "Accumulation" in phase:
-            return "💡 Breakout brewing — watch for volume spike"
-        elif "Bullish" in signal and "Markup" in phase:
-            return "✅ Swing entry valid — ride short trend leg"
-        elif "Bearish" in signal and "Distribution" in phase:
-            return "⚠️ Avoid — traps likely in choppy zone"
-        elif "Bearish" in signal and "Markdown" in phase:
-            return "🚨 Quick breakdown — aggressive swing short possible"
-
-    elif trade_type == "Positional":
-        if "Bullish" in signal and "Accumulation" in phase:
-            return "🟢 Positional entry early — confirmation needed"
-        elif "Bullish" in signal and "Markup" in phase:
-            return "✅ Strong trend — positional hold justified"
-        elif "Bearish" in signal and "Distribution" in phase:
-            return "⚠️ Exit/reduce — trend exhaustion likely"
-        elif "Bearish" in signal and "Markdown" in phase:
-            return "🔻 Stay short — trend continuation expected"
-
-    elif trade_type == "Short-Term":
-        if "Neutral" in signal and "Accumulation" in phase:
-            return "⏸️ Wait for clear breakout — no edge now"
-        elif "Bullish" in signal and "Markup" in phase:
-            return "⚡ Momentum entry possible for 1–2 bars"
-        elif "Neutral" in signal and "Distribution" in phase:
-            return "🎭 Scalp carefully — high whipsaw risk"
-        elif "Bearish" in signal and "Markdown" in phase:
-            return "📉 Short scalp may work — protect gains fast"
-
-    return "🔍 Mixed scenario — wait for clarity"
 
 def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
                      clues_4h, clues_1d, clues_1w,
                      final, trade_description, latest_vix, nifty_trend,
                      sr_support, sr_resistance, traps_4h, traps_1d, traps_1w,
-                     additional_signals=None, market_phase=None, phase_response=None, trade_response=None):
+                     additional_signals=None):
 
     # Count clues
     bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
@@ -122,9 +65,6 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
 {resistance_note}
 {vix_note}
 {nifty_note}
-📈 **Market Phase:** {market_phase}  
-💡 **Phase Insight:** {phase_response}  
-🎯 **Best Trading Behavior:** {trade_response} 
 
 📈 *Action Plan*:
 {action_note}
@@ -719,23 +659,7 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
-        # Detect market phase per timeframe
 
-        phase_4h, _ = detect_market_phase(df_4h)
-        phase_1d, _ = detect_market_phase(df_1d)
-        phase_1w, _ = detect_market_phase(df_1w)
-        
-        # Choose phase based on strategy type
-        if strategy_type == "Short-Term":
-            phase = phase_4h
-        elif strategy_type == "Swing":
-            phase = phase_1d
-        else:
-            phase = phase_1w
-        
-        # Get response for the selected phase and strategy
-        response = market_phase_message(strategy_type, final, phase)
-        trade_response = response  # Can keep as separate if you wish
 
         if summary_only:
           trade_response = market_phase_message(strategy_type, final, best_phase)  
@@ -745,7 +669,7 @@ def stock_analyzer(symbols, summary_only=False):
               clues_4h, clues_1d, clues_1w, final, trade_description,
               latest_vix, nifty_trend, sr_support, sr_resistance,
               traps_4h, traps_1d, traps_1w,
-              additional_signals=additional_signals,market_phase=phase, phase_response=response, trade_response=trade_response
+              additional_signals=additional_signals
             )
           st.markdown(summary)
           
@@ -770,8 +694,7 @@ def stock_analyzer(symbols, summary_only=False):
               "Trap Signals": " | ".join(traps_4h + traps_1d + traps_1w) if (traps_4h or traps_1d or traps_1w) else "None",
               "Smart Signal": " | ".join(additional_signals) if additional_signals else "None",
               "Final Signal": final,
-              "Action Plan": action_note,
-              "Best Response" : trade_response or 'N/A' 
+              "Action Plan": action_note
               })
           if summary_table:
             st.markdown("### 📋 Final Summary Table (All Stocks)")
