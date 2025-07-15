@@ -636,20 +636,7 @@ def stock_analyzer(symbols, summary_only=False):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1w, signal_1w, support_1w, resistance_1w = analyze_df(df_1w, '1W')
         latest_price = df_1d['Close'].iloc[-1]
-        # Detect market phase per timeframe
-        phase_4h = detect_market_phase(df_4h)
-        phase_1d = detect_market_phase(df_1d)
-        phase_1w = detect_market_phase(df_1w)
-        
-        # Pick best phase based on strategy type
-        best_phase = (
-            phase_4h if strategy_type == "Short-Term"
-            else phase_1d if strategy_type == "Swing"
-            else phase_1w
-        )
-    
-        # Get best response message
-        trade_response = market_phase_message(strategy_type, final, best_phase)
+
         # Extract trap clues
         def extract_traps(clues):
             return [c for c in clues if 'Trap' in c or ('Breakout' in c and '⚠️' in c) or '🚨' in c]
@@ -730,7 +717,20 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
-
+        # Detect market phase per timeframe
+        phase_4h = detect_market_phase(df_4h)
+        phase_1d = detect_market_phase(df_1d)
+        phase_1w = detect_market_phase(df_1w)
+        
+        # Pick best phase based on strategy type
+        best_phase = (
+            phase_4h if strategy_type == "Short-Term"
+            else phase_1d if strategy_type == "Swing"
+            else phase_1w
+        )
+    
+        # Get best response message
+        trade_response = market_phase_message(strategy_type, final, best_phase)
         if summary_only:
           additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
           summary = generate_summary(
