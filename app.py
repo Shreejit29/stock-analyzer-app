@@ -110,7 +110,8 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
 📉 *Latest Price*: ₹{latest_price:.2f}
 📌 *Bias*: {final}
 🎯 *Suggested Trade*: {trade_description}
-
+f"**Market Phase:** {market_phase}"  
+f"**📢 Phase Response:** {trade_response}"
 🧭 *Signal Map*:
 • 4H ➤ {signal_4h}
 • 1D ➤ {signal_1d}
@@ -123,6 +124,7 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
 {resistance_note}
 {vix_note}
 {nifty_note}
+
 
 📈 *Action Plan*:
 {action_note}
