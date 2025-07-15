@@ -720,6 +720,7 @@ def stock_analyzer(symbols, summary_only=False):
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
         # Detect market phase per timeframe
+        market_phase, market_phase_response = detect_market_phase(df)
         phase_4h, _ = detect_market_phase(df_4h)
         phase_1d, _ = detect_market_phase(df_1d)
         phase_1w, _ = detect_market_phase(df_1w)
