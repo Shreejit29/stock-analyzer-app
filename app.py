@@ -718,6 +718,20 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
+        # Detect market phase per timeframe
+        phase_4h = detect_market_phase(df_4h)
+        phase_1d = detect_market_phase(df_1d)
+        phase_1w = detect_market_phase(df_1w)
+        
+        # Pick best phase based on strategy type
+        best_phase = (
+            phase_4h if strategy_type == "Short-Term"
+            else phase_1d if strategy_type == "Swing"
+            else phase_1w
+        )
+        
+        # Get best response message
+        trade_response = market_phase_message(strategy_type, final, best_phase)
 
         if summary_only:
           additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
@@ -840,20 +854,6 @@ def stock_analyzer(symbols, summary_only=False):
               st.subheader("🔍 Extra Smart Signal Clues")
               for line in additional_signals:
                   st.write(line)
-        # Detect market phase per timeframe
-        phase_4h = detect_market_phase(df_4h)
-        phase_1d = detect_market_phase(df_1d)
-        phase_1w = detect_market_phase(df_1w)
-        
-        # Pick best phase based on strategy type
-        best_phase = (
-            phase_4h if strategy_type == "Short-Term"
-            else phase_1d if strategy_type == "Swing"
-            else phase_1w
-        )
-        
-        # Get best response message
-        trade_response = market_phase_message(strategy_type, final, best_phase)
 
 def candlestick_summary(df):
     recent = df.iloc[-1]
