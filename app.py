@@ -717,6 +717,21 @@ def stock_analyzer(symbols, summary_only=False):
             final = f"📈 Moderate {bias} Bias (Confidence: {confidence}%)"
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
+        # Detect market phase for all timeframes
+        phase_4h, _ = detect_market_phase(df_4h)
+        phase_1d, _ = detect_market_phase(df_1d)
+        phase_1w, _ = detect_market_phase(df_1w)
+        
+        # Choose the best phase based on strategy
+        if strategy_type == "Short-Term":
+            selected_phase = phase_4h
+        elif strategy_type == "Swing":
+            selected_phase = phase_1d
+        else:
+            selected_phase = phase_1w
+        
+        # Get response to show in summary
+        trade_response = market_phase_message(strategy_type, final, selected_phase)
 
 
         if summary_only:
