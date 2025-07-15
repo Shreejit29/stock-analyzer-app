@@ -74,7 +74,7 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
                      clues_4h, clues_1d, clues_1w,
                      final, trade_description, latest_vix, nifty_trend,
                      sr_support, sr_resistance, traps_4h, traps_1d, traps_1w,
-                     additional_signals=None, market_phase_response=None):
+                     additional_signals=None, market_phase_response=None, market_phase=None):
 
     # Count clues
     bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
@@ -131,10 +131,11 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
       summary += "\n\n📌 *Additional Insights*:\n"
       for line in additional_signals:
         summary += f"{line}\n"
-
+    if market_phase:
+        summary_text += f"\n🏗️ **Market Phase:** {market_phase}"
     if market_phase_response:
         summary += f"\n🧠 **Best Response:** {market_phase_response}"
-
+   
     return summary
 def generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent):
     lines = []
