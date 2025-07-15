@@ -662,7 +662,6 @@ def stock_analyzer(symbols, summary_only=False):
 
 
         if summary_only:
-          trade_response = market_phase_message(strategy_type, final, best_phase)  
           additional_signals = generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent)
           summary = generate_summary(
               symbol, latest_price, signal_4h, signal_1d, signal_1w,
