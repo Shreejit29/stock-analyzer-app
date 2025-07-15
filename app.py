@@ -35,6 +35,20 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
     # Risk notes
     vix_note = "⚠️ VIX <12 — market may be complacent." if latest_vix < 12 else ""
     nifty_note = "⚠️ Nifty is trending down — caution on longs." if "down" in nifty_trend.lower() else ""
+    # Detect market phase per timeframe
+    phase_4h = detect_market_phase(df_4h)
+    phase_1d = detect_market_phase(df_1d)
+    phase_1w = detect_market_phase(df_1w)
+    
+    # Pick best phase based on strategy type
+    best_phase = (
+        phase_4h if strategy_type == "Short-Term"
+        else phase_1d if strategy_type == "Swing"
+        else phase_1w
+    )
+    
+    # Get best response message
+    trade_response = market_phase_message(strategy_type, final, best_phase)
 
     # Action suggestion
     if "Bullish" in final:
