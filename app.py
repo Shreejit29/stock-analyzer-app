@@ -745,7 +745,7 @@ def stock_analyzer(symbols, summary_only=False):
               clues_4h, clues_1d, clues_1w, final, trade_description,
               latest_vix, nifty_trend, sr_support, sr_resistance,
               traps_4h, traps_1d, traps_1w,
-              additional_signals=additional_signals, market_phase_response=trade_response
+              additional_signals=additional_signals, market_phase=phase, market_phase_response=trade_response
             )
           st.markdown(summary)
           
