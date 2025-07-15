@@ -766,7 +766,7 @@ def stock_analyzer(symbols, summary_only=False):
               "Smart Signal": " | ".join(additional_signals) if additional_signals else "None",
               "Final Signal": final,
               "Action Plan": action_note,
-              "Best Response" : market_phase_response or 'N/A' 
+              "Best Response" : trade_response or 'N/A' 
               })
           if summary_table:
             st.markdown("### 📋 Final Summary Table (All Stocks)")
