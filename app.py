@@ -11,6 +11,64 @@ import openpyxl  # For reading Excel files (automatically used by Pandas)
 import xlsxwriter  # For writing Excel files with formatting
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+def detect_market_phase(df):
+    """
+    Detect market phase based on EMA alignment and volume.
+    Returns: (phase_name, confidence_text)
+    """
+    if len(df) < 50:
+        return "Unknown", "📉 Not enough data to determine phase."
+
+    ema20 = df['EMA20'].iloc[-1]
+    ema50 = df['EMA50'].iloc[-1]
+    ema200 = df['EMA200'].iloc[-1]
+    close = df['Close'].iloc[-1]
+
+    avg_vol = df['Volume'].tail(20).mean()
+    recent_vol = df['Volume'].iloc[-1]
+
+    if close < ema20 < ema50 and recent_vol < avg_vol:
+        return "Accumulation", "📦 Sideways buildup — breakout likely ahead."
+    elif close > ema20 > ema50 and ema50 > ema200:
+        return "Markup", "📈 Trending Up — ride the move."
+    elif close > ema20 and ema20 < ema50 and recent_vol > avg_vol:
+        return "Distribution", "🎭 Choppy zone — trend may be ending."
+    elif close < ema20 and ema20 < ema50 and ema50 < ema200:
+        return "Markdown", "📉 Downtrend — look for short setups."
+    else:
+        return "Transition", "🔁 Mixed signals — avoid aggressive entries."
+def market_phase_message(trade_type, signal, phase):
+    if trade_type == "Swing":
+        if "Bullish" in signal and phase == "Accumulation":
+            return "💡 Breakout brewing — watch for volume spike"
+        elif "Bullish" in signal and phase == "Markup":
+            return "✅ Swing entry valid — ride short trend leg"
+        elif "Bearish" in signal and phase == "Distribution":
+            return "⚠️ Avoid — traps likely in choppy zone"
+        elif "Bearish" in signal and phase == "Markdown":
+            return "🚨 Quick breakdown — aggressive swing short possible"
+
+    elif trade_type == "Positional":
+        if "Bullish" in signal and phase == "Accumulation":
+            return "🟢 Early entry — need breakout confirmation"
+        elif "Bullish" in signal and phase == "Markup":
+            return "✅ Strong trend — positional hold justified"
+        elif "Bearish" in signal and phase == "Distribution":
+            return "⚠️ Exit/reduce — trend exhaustion likely"
+        elif "Bearish" in signal and phase == "Markdown":
+            return "🔻 Stay short — trend continuation expected"
+
+    elif trade_type == "Short-Term":
+        if "Neutral" in signal and phase == "Accumulation":
+            return "⏸️ Wait — breakout not confirmed yet"
+        elif "Bullish" in signal and phase == "Markup":
+            return "⚡ Fast upside scalp possible"
+        elif "Neutral" in signal and phase == "Distribution":
+            return "🎭 Scalp carefully — fakeouts likely"
+        elif "Bearish" in signal and phase == "Markdown":
+            return "📉 Short scalp may work — protect gains fast"
+
+    return "🔍 Mixed scenario — better to wait"
 
 
 def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
