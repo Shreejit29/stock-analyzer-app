@@ -734,14 +734,14 @@ def stock_analyzer(symbols, summary_only=False):
         
         # Choose the best phase based on strategy
         if strategy_type == "Short-Term":
-            selected_phase = phase_4h
+            phase = phase_4h
         elif strategy_type == "Swing":
-            selected_phase = phase_1d
+           phase = phase_1d
         else:
-            selected_phase = phase_1w
+            _phase = phase_1w
         
         # Get response to show in summary
-        trade_response = market_phase_message(strategy_type, final, selected_phase)
+        trade_response = market_phase_message(strategy_type, final, phase)
 
 
         if summary_only:
@@ -751,7 +751,7 @@ def stock_analyzer(symbols, summary_only=False):
               clues_4h, clues_1d, clues_1w, final, trade_description,
               latest_vix, nifty_trend, sr_support, sr_resistance,
               traps_4h, traps_1d, traps_1w,
-              additional_signals=additional_signals, market_phase=selected_phase, trade_response=trade_response
+              additional_signals=additional_signals, market_phase= phase, trade_response=trade_response
             )
           st.markdown(summary, unsafe_allow_html=False)
           
@@ -777,7 +777,7 @@ def stock_analyzer(symbols, summary_only=False):
               "Smart Signal": " | ".join(additional_signals) if additional_signals else "None",
               "Final Signal": final,
               "Action Plan": action_note,
-              "Market Phase": selected_phase,                   
+              "Market Phase": phase,                   
               "Phase Response": trade_response 
               })
           if summary_table:
