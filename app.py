@@ -133,7 +133,7 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
         summary += f"{line}\n"
     return summary
     if market_phase_response:
-        summary_text += f"\n🧠 **Best Response:** {market_phase_response}"
+        summary_text += f"\n🧠 **Best Response:** {trade_response}"
 
 def generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent):
     lines = []
