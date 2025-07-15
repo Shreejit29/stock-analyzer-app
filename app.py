@@ -752,7 +752,7 @@ def stock_analyzer(symbols, summary_only=False):
               traps_4h, traps_1d, traps_1w,
               additional_signals=additional_signals, market_phase=selected_phase, trade_response=trade_response
             )
-          st.markdown(summary)
+          st.markdown(summary, unsafe_allow_html=False)
           
            
           # Count clues
