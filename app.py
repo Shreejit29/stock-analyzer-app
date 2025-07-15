@@ -74,7 +74,7 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
                      clues_4h, clues_1d, clues_1w,
                      final, trade_description, latest_vix, nifty_trend,
                      sr_support, sr_resistance, traps_4h, traps_1d, traps_1w,
-                     additional_signals=None, market_phase_response=None, market_phase=None):
+                     additional_signals=None, market_phase=None, phase_response=None, trade_response=None):
 
     # Count clues
     bull_clues = sum('Bullish' in c or 'Up' in c for c in clues_4h + clues_1d + clues_1w)
@@ -122,7 +122,9 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
 {resistance_note}
 {vix_note}
 {nifty_note}
-
+📈 **Market Phase:** {market_phase}  
+💡 **Phase Insight:** {phase_response}  
+🎯 **Best Trading Behavior:** {trade_response} 
 
 📈 *Action Plan*:
 {action_note}
@@ -131,11 +133,6 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
       summary += "\n\n📌 *Additional Insights*:\n"
       for line in additional_signals:
         summary += f"{line}\n"
-    if market_phase:
-        summary_text += f"\n🏗️ **Market Phase:** {market_phase}"
-    if market_phase_response:
-        summary += f"\n🧠 **Best Response:** {market_phase_response}"
-   
     return summary
 def generate_additional_signals(clues_4h, clues_1d, clues_1w, latest_price, sr_support, sr_resistance, confidence_percent):
     lines = []
@@ -723,21 +720,21 @@ def stock_analyzer(symbols, summary_only=False):
         else:
             final = f"⚖️ Mixed/Neutral (Confidence: {confidence}%)"
         # Detect market phase per timeframe
-        phase_4h = detect_market_phase(df_4h)
-        phase_1d = detect_market_phase(df_1d)
-        phase_1w = detect_market_phase(df_1w)
+        phase_4h, _ = detect_market_phase(df_4h)
+        phase_1d, _ = detect_market_phase(df_1d)
+        phase_1w, _ = detect_market_phase(df_1w)
         
-
-        # Choose market phase by strategy type
+        # Choose market phase and response by strategy type
         if strategy_type == "Short-Term":
             phase, response = detect_market_phase(df_4h)
         elif strategy_type == "Swing":
             phase, response = detect_market_phase(df_1d)
         else:
             phase, response = detect_market_phase(df_1w)
+        
+        # Get best response message based on final signal and phase
+        trade_response = market_phase_message(strategy_type, final, phase)
 
-        # Get best response message
-        trade_response = market_phase_message(strategy_type, final, best_phase)
 
         if summary_only:
           trade_response = market_phase_message(strategy_type, final, best_phase)  
@@ -747,7 +744,7 @@ def stock_analyzer(symbols, summary_only=False):
               clues_4h, clues_1d, clues_1w, final, trade_description,
               latest_vix, nifty_trend, sr_support, sr_resistance,
               traps_4h, traps_1d, traps_1w,
-              additional_signals=additional_signals, market_phase=phase, market_phase_response=trade_response
+              additional_signals=additional_signals,market_phase=phase, phase_response=response, trade_response=trade_response
             )
           st.markdown(summary)
           
