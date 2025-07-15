@@ -35,21 +35,6 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
     # Risk notes
     vix_note = "⚠️ VIX <12 — market may be complacent." if latest_vix < 12 else ""
     nifty_note = "⚠️ Nifty is trending down — caution on longs." if "down" in nifty_trend.lower() else ""
-    # Detect market phase per timeframe
-    phase_4h = detect_market_phase(df_4h)
-    phase_1d = detect_market_phase(df_1d)
-    phase_1w = detect_market_phase(df_1w)
-    
-    # Pick best phase based on strategy type
-    best_phase = (
-        phase_4h if strategy_type == "Short-Term"
-        else phase_1d if strategy_type == "Swing"
-        else phase_1w
-    )
-    
-    # Get best response message
-    trade_response = market_phase_message(strategy_type, final, best_phase)
-
     # Action suggestion
     if "Bullish" in final:
         action_note = f"✅ Look for breakout above {sr_resistance} with volume."
@@ -651,7 +636,20 @@ def stock_analyzer(symbols, summary_only=False):
         clues_1d, signal_1d, support_1d, resistance_1d = analyze_df(df_1d, '1D')
         clues_1w, signal_1w, support_1w, resistance_1w = analyze_df(df_1w, '1W')
         latest_price = df_1d['Close'].iloc[-1]
-
+        # Detect market phase per timeframe
+        phase_4h = detect_market_phase(df_4h)
+        phase_1d = detect_market_phase(df_1d)
+        phase_1w = detect_market_phase(df_1w)
+        
+        # Pick best phase based on strategy type
+        best_phase = (
+            phase_4h if strategy_type == "Short-Term"
+            else phase_1d if strategy_type == "Swing"
+            else phase_1w
+        )
+    
+    # Get best response message
+    trade_response = market_phase_message(strategy_type, final, best_phase)
         # Extract trap clues
         def extract_traps(clues):
             return [c for c in clues if 'Trap' in c or ('Breakout' in c and '⚠️' in c) or '🚨' in c]
