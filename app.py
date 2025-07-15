@@ -127,9 +127,13 @@ def generate_summary(symbol, latest_price, signal_4h, signal_1d, signal_1w,
 
 📈 *Action Plan*:
 {action_note}
-*Market Phase*: {market_phase}  
-*📢 Phase Response*: {trade_response}
 """.strip()
+    if market_phase or trade_response:
+        summary += "\n\n🧭 *Market Phase Analysis*:\n"
+        if market_phase:
+            summary += f"• Market Phase: {market_phase}\n"
+        if trade_response:
+            summary += f"• Phase Response: {trade_response}\n"
     if additional_signals:
       summary += "\n\n📌 *Additional Insights*:\n"
       for line in additional_signals:
