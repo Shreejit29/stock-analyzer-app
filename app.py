@@ -776,7 +776,9 @@ def stock_analyzer(symbols, summary_only=False):
               "Trap Signals": " | ".join(traps_4h + traps_1d + traps_1w) if (traps_4h or traps_1d or traps_1w) else "None",
               "Smart Signal": " | ".join(additional_signals) if additional_signals else "None",
               "Final Signal": final,
-              "Action Plan": action_note
+              "Action Plan": action_note,
+              "Market Phase": phase,                   
+              "Phase Response": trade_response 
               })
           if summary_table:
             st.markdown("### 📋 Final Summary Table (All Stocks)")
